@@ -1,0 +1,17 @@
+<svg width="640" height="760" viewBox="0 0 640 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="640" height="760" rx="48" fill="url(#bg)"/>
+<path d="M248 132H392L428 580H334L320 352L306 580H212L248 132Z" fill="url(#pants)"/>
+<path d="M248 194H392" stroke="white" stroke-opacity=".4" stroke-width="8" stroke-linecap="round"/>
+<path d="M284 132V174" stroke="#2C2F55" stroke-width="8" stroke-linecap="round"/>
+<path d="M356 132V174" stroke="#2C2F55" stroke-width="8" stroke-linecap="round"/>
+<defs>
+<linearGradient id="bg" x1="88" y1="52" x2="568" y2="706" gradientUnits="userSpaceOnUse">
+<stop stop-color="#E6F2FF"/>
+<stop offset="1" stop-color="#D7E0FF"/>
+</linearGradient>
+<linearGradient id="pants" x1="234" y1="132" x2="430" y2="566" gradientUnits="userSpaceOnUse">
+<stop stop-color="#5966FF"/>
+<stop offset="1" stop-color="#25306E"/>
+</linearGradient>
+</defs>
+</svg>

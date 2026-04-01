@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Trenda | Tienda de Ropa</title>
+    <meta
+      name="description"
+      content="Tienda de ropa moderna con camisas, vestidos, conjuntos y accesorios en una experiencia web elegante y responsiva."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="topbar container">
+        <a class="brand" href="#inicio" aria-label="Ir al inicio">
+          <img src="assets/logo.svg" alt="Trenda" />
+        </a>
+
+        <nav class="desktop-nav" aria-label="Navegación principal">
+          <a href="#colecciones">Colecciones</a>
+          <a href="#catalogo">Catálogo</a>
+          <a href="#beneficios">Beneficios</a>
+          <a href="#contacto">Contacto</a>
+        </nav>
+
+        <div class="header-actions">
+          <button class="ghost-btn" id="menuButton" aria-label="Abrir menú">
+            ☰
+          </button>
+          <button class="cart-button" id="openCartButton" aria-label="Abrir carrito">
+            <span>Carrito</span>
+            <span class="cart-badge" id="cartCount">0</span>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero container" id="inicio">
+          <div class="hero-copy">
+            <span class="eyebrow">Nueva colección 2026</span>
+            <h1>Una tienda de ropa bonita, moderna y lista para vender.</h1>
+            <p>
+              Cree su escaparate digital para camisas, vestidos, conjuntos y piezas
+              esenciales con una experiencia elegante, rápida y adaptable a celular.
+            </p>
+
+            <div class="hero-cta">
+              <a href="#catalogo" class="primary-btn">Ver catálogo</a>
+              <a href="#colecciones" class="secondary-btn">Explorar estilos</a>
+            </div>
+
+            <div class="hero-stats">
+              <article>
+                <strong>+8</strong>
+                <span>Productos iniciales</span>
+              </article>
+              <article>
+                <strong>100%</strong>
+                <span>Diseño responsivo</span>
+              </article>
+              <article>
+                <strong>Local</strong>
+                <span>Carrito persistente</span>
+              </article>
+            </div>
+          </div>
+
+          <div class="hero-visual" aria-hidden="true">
+            <div class="floating-card small">Camisas</div>
+            <div class="floating-card large">Vestidos</div>
+            <div class="hero-model hero-model-left"></div>
+            <div class="hero-model hero-model-right"></div>
+            <div class="hero-glow"></div>
+          </div>
+        </section>
+
+        <section class="collections container" id="colecciones">
+          <div class="section-heading">
+            <span class="eyebrow">Colecciones</span>
+            <h2>Diseñada para vender moda con personalidad.</h2>
+          </div>
+
+          <div class="collection-grid">
+            <article class="collection-card pastel-purple">
+              <p class="collection-kicker">Casual chic</p>
+              <h3>Camisas ligeras y sets suaves</h3>
+              <p>Perfectas para outfits relajados, frescos y fáciles de combinar.</p>
+            </article>
+            <article class="collection-card pastel-pink">
+              <p class="collection-kicker">Evento y noche</p>
+              <h3>Vestidos con caída elegante</h3>
+              <p>Prendas destacadas para una tienda con un look más premium.</p>
+            </article>
+            <article class="collection-card pastel-blue">
+              <p class="collection-kicker">Esenciales</p>
+              <h3>Pantalones, faldas y básicos</h3>
+              <p>Una base sólida para ampliar el inventario y armar colecciones.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="catalog container" id="catalogo">
+          <div class="section-heading split-heading">
+            <div>
+              <span class="eyebrow">Catálogo</span>
+              <h2>Seleccione, filtre y agregue productos al carrito.</h2>
+            </div>
+            <p>
+              Este catálogo ya incluye filtros por categoría, búsqueda por nombre y
+              un carrito lateral para simular una experiencia de compra real.
+            </p>
+          </div>
+
+          <div class="catalog-toolbar">
+            <div class="search-box">
+              <label class="sr-only" for="searchInput">Buscar producto</label>
+              <input
+                type="search"
+                id="searchInput"
+                placeholder="Buscar camisas, vestidos, conjuntos..."
+              />
+            </div>
+
+            <div class="filter-group" id="categoryFilters" aria-label="Filtrar por categoría">
+              <button class="filter-btn is-active" data-category="all">Todo</button>
+              <button class="filter-btn" data-category="camisas">Camisas</button>
+              <button class="filter-btn" data-category="vestidos">Vestidos</button>
+              <button class="filter-btn" data-category="basicos">Básicos</button>
+              <button class="filter-btn" data-category="sets">Sets</button>
+            </div>
+          </div>
+
+          <div class="product-grid" id="productGrid"></div>
+        </section>
+
+        <section class="promo-band container">
+          <div>
+            <span class="eyebrow">Impulso visual</span>
+            <h2>Puede cambiar productos, textos, precios y colores fácilmente.</h2>
+          </div>
+          <a class="primary-btn" href="#contacto">Personalizar tienda</a>
+        </section>
+
+        <section class="benefits container" id="beneficios">
+          <div class="section-heading">
+            <span class="eyebrow">Beneficios</span>
+            <h2>Base ideal para una marca de ropa en crecimiento.</h2>
+          </div>
+
+          <div class="benefit-grid">
+            <article>
+              <h3>Diseño elegante</h3>
+              <p>Paleta moderna, formas suaves, sombras finas y una interfaz limpia.</p>
+            </article>
+            <article>
+              <h3>Venta más clara</h3>
+              <p>Catálogo organizado por categorías y llamado a la acción visible.</p>
+            </article>
+            <article>
+              <h3>Carrito funcional</h3>
+              <p>Resumen automático del pedido, cantidades y persistencia local.</p>
+            </article>
+            <article>
+              <h3>Escalable</h3>
+              <p>Puede crecer luego hacia backend, pasarela de pago o panel admin.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer container" id="contacto">
+        <div>
+          <img src="assets/logo.svg" alt="Trenda" class="footer-logo" />
+          <p>
+            Tienda web demo creada desde cero para vender ropa de forma moderna y
+            visualmente atractiva.
+          </p>
+        </div>
+        <div class="footer-links">
+          <a href="#inicio">Inicio</a>
+          <a href="#catalogo">Catálogo</a>
+          <a href="#beneficios">Beneficios</a>
+        </div>
+      </footer>
+    </div>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-labelledby="cartTitle" aria-hidden="true">
+      <div class="cart-header">
+        <div>
+          <p class="eyebrow">Pedido</p>
+          <h2 id="cartTitle">Su carrito</h2>
+        </div>
+        <button class="ghost-btn close-btn" id="closeCartButton" aria-label="Cerrar carrito">✕</button>
+      </div>
+
+      <div class="cart-items" id="cartItems"></div>
+
+      <div class="cart-summary">
+        <div>
+          <span>Subtotal</span>
+          <strong id="cartSubtotal">$0.00</strong>
+        </div>
+        <div>
+          <span>Envío</span>
+          <strong>Gratis</strong>
+        </div>
+        <button class="primary-btn checkout-btn" id="checkoutButton">Finalizar pedido</button>
+      </div>
+    </aside>
+
+    <div class="drawer-overlay" id="drawerOverlay" hidden></div>
+    <div class="mobile-menu" id="mobileMenu" hidden>
+      <a href="#colecciones">Colecciones</a>
+      <a href="#catalogo">Catálogo</a>
+      <a href="#beneficios">Beneficios</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+
+    <template id="productTemplate">
+      <article class="product-card">
+        <div class="product-media-wrap">
+          <img class="product-media" src="" alt="" loading="lazy" />
+          <span class="product-tag"></span>
+        </div>
+        <div class="product-body">
+          <div class="product-headline">
+            <div>
+              <h3 class="product-name"></h3>
+              <p class="product-meta"></p>
+            </div>
+            <strong class="product-price"></strong>
+          </div>
+          <p class="product-description"></p>
+          <button class="primary-btn add-to-cart-btn">Agregar al carrito</button>
+        </div>
+      </article>
+    </template>
+
+    <script src="script.js"></script>
+  </body>
+</html>

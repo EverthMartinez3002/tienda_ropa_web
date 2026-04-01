@@ -1,0 +1,19 @@
+<svg width="640" height="760" viewBox="0 0 640 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="640" height="760" rx="48" fill="url(#bg)"/>
+<path d="M224 136L176 210L236 252L262 208V580H378V208L404 252L464 210L416 136L352 164L320 104L288 164L224 136Z" fill="url(#shirt)"/>
+<path d="M262 208H378" stroke="rgba(255,255,255,.85)" stroke-width="10" stroke-linecap="round"/>
+<path d="M320 220V556" stroke="rgba(255,255,255,.3)" stroke-width="8" stroke-linecap="round"/>
+<circle cx="320" cy="334" r="8" fill="white" fill-opacity=".8"/>
+<circle cx="320" cy="388" r="8" fill="white" fill-opacity=".8"/>
+<circle cx="320" cy="442" r="8" fill="white" fill-opacity=".8"/>
+<defs>
+<linearGradient id="bg" x1="84" y1="60" x2="592" y2="716" gradientUnits="userSpaceOnUse">
+<stop stop-color="#FBE8FF"/>
+<stop offset="1" stop-color="#FFD5B8"/>
+</linearGradient>
+<linearGradient id="shirt" x1="198" y1="140" x2="452" y2="588" gradientUnits="userSpaceOnUse">
+<stop stop-color="#BF8EFF"/>
+<stop offset="1" stop-color="#7A4EFF"/>
+</linearGradient>
+</defs>
+</svg>
