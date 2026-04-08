@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: tienda_ropa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+
+  app:
+    build: .
+    depends_on:
+      - db
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/tienda_ropa
+      SESSION_DAYS: 7
+      ADMIN_EMAIL: admin@velastudio.local
+      ADMIN_PASSWORD: admin123
+      BRAND_NAME: Velá Studio
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:

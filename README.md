@@ -1,52 +1,50 @@
-# Trenda - Tienda de ropa web
+# Velá Studio - Tienda de ropa seria
 
-Proyecto base de una tienda de ropa creado desde cero con HTML, CSS y JavaScript puro.
+Base seria de una tienda de ropa con:
 
-## Incluye
+- Tienda pública
+- Página de producto
+- Carrito persistente
+- Opción de vaciar la bolsa antes de finalizar
+- Checkout por WhatsApp
+- Checkout por link de pago
+- Panel admin
+- Login de administrador
+- CRUD de categorías
+- CRUD de productos
+- Configuración general de la tienda
+- Backend con Node.js + Express
+- PostgreSQL
 
-- Landing page moderna y responsiva
-- Catálogo de productos
-- Filtro por categorías
-- Búsqueda por nombre
-- Carrito lateral funcional
-- Persistencia del carrito con `localStorage`
-- Diseño listo para personalizar con su marca
+## Acceso al admin
 
-## Estructura
+- URL: `http://localhost:3000/admin.html`
+- correo: `admin@velastudio.local`
+- clave: `admin123`
 
-```text
-.
-├── assets/
-│   ├── logo.svg
-│   └── products/
-│       ├── camisa-lino.svg
-│       ├── camisa-nube.svg
-│       ├── chaqueta-soft.svg
-│       ├── falda-midi.svg
-│       ├── pantalon-urbano.svg
-│       ├── set-blanco.svg
-│       ├── vestido-noche.svg
-│       └── vestido-rosa.svg
-├── index.html
-├── script.js
-└── styles.css
-```
-
-## Cómo usarlo
-
-Solo abra `index.html` en el navegador.
-
-Si quiere correrlo con un servidor local:
+## Ejecutar con Docker
 
 ```bash
-python -m http.server 5500
+cp .env.example .env
+docker compose up --build
 ```
 
-Después abra `http://localhost:5500`.
+Luego abra:
 
-## Personalizaciones recomendadas
+- `http://localhost:3000`
+- `http://localhost:3000/admin.html`
 
-- Cambiar el nombre de la marca y el logo
-- Reemplazar los productos de ejemplo por su inventario real
-- Conectar el botón de finalizar pedido a WhatsApp o a una pasarela de pago
-- Agregar backend para usuarios, pedidos e inventario
+## Ejecutar sin Docker
+
+1. Cree una base PostgreSQL.
+2. Configure `DATABASE_URL`.
+3. Instale dependencias:
+
+```bash
+npm install
+npm start
+```
+
+## Nota
+
+La tienda pública no requiere cuenta de cliente. El cierre de compra está pensado para WhatsApp y link de pago, como usted pidió.

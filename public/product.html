@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Producto | Velá Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="product">
+    <div class="announcement-bar">Selección editorial · Compra segura por atención directa</div>
+    <header class="site-header shell">
+      <a class="brand-mark" href="/index.html"><img src="/assets/logo.svg" alt="Velá Studio" /></a>
+      <nav class="site-nav">
+        <a href="/index.html#new">Lo nuevo</a>
+        <a href="/index.html#catalogo">Catálogo</a>
+        <a href="/index.html#contacto">Contacto</a>
+      </nav>
+      <div class="site-actions">
+        <a class="btn btn-ghost" href="/index.html">Volver</a>
+        <button class="bag-btn" id="openCartButton">Bolsa <span id="cartCount">0</span></button>
+      </div>
+    </header>
+
+    <main class="shell product-layout" id="productPage">
+      <div class="product-gallery-card">
+        <img id="productImage" src="" alt="" />
+      </div>
+      <div class="product-detail-card">
+        <span class="overline" id="productCategory">Colección</span>
+        <h1 id="productName">Producto</h1>
+        <div class="product-price-line">
+          <strong id="productPrice">$0.00</strong>
+          <span id="productCompare"></span>
+        </div>
+        <p class="product-lead" id="productShort"></p>
+        <p class="product-description-long" id="productDescription"></p>
+
+        <div class="size-group">
+          <span>Talla</span>
+          <div class="size-options" id="sizeOptions"></div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="btn btn-primary" id="addProductToCart">Agregar a la bolsa</button>
+          <button class="btn btn-secondary" id="buyByWhatsApp">Comprar por WhatsApp</button>
+        </div>
+
+        <div class="detail-note">
+          <p id="shippingNoteProduct">Envíos en 24 a 48 horas hábiles a nivel nacional.</p>
+        </div>
+      </div>
+    </main>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <span class="overline">Bolsa</span>
+          <h3>Su pedido</h3>
+        </div>
+        <button class="icon-btn" id="closeCartButton">✕</button>
+      </div>
+      <div class="drawer-body" id="cartItems"></div>
+      <div class="drawer-footer">
+        <div class="drawer-row"><span>Subtotal</span><strong id="cartSubtotal">$0.00</strong></div>
+        <button class="btn btn-secondary" id="clearCartButton">Vaciar bolsa</button>
+        <button class="btn btn-primary" id="checkoutWhatsAppButton">Continuar por WhatsApp</button>
+        <button class="btn btn-dark" id="checkoutPaymentButton">Ir a link de pago</button>
+      </div>
+    </aside>
+    <div class="overlay" id="drawerOverlay" hidden></div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/product.js"></script>
+  </body>
+</html>

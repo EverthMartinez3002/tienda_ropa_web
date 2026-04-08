@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin | Velá Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="admin">
+    <div class="admin-login-screen" id="loginScreen">
+      <div class="admin-login-card">
+        <span class="overline">Panel admin</span>
+        <h1>Velá Studio</h1>
+        <p>Ingrese con sus credenciales para gestionar categorías, productos y configuración.</p>
+        <form id="loginForm" class="admin-form stack-gap">
+          <label>
+            <span>Correo</span>
+            <input type="email" name="email" value="admin@velastudio.local" required />
+          </label>
+          <label>
+            <span>Contraseña</span>
+            <input type="password" name="password" value="admin123" required />
+          </label>
+          <button class="btn btn-primary" type="submit">Entrar al panel</button>
+          <p class="form-message" id="loginMessage"></p>
+        </form>
+      </div>
+    </div>
+
+    <div class="admin-app" id="adminApp" hidden>
+      <aside class="admin-sidebar">
+        <div>
+          <img src="/assets/logo.svg" alt="Velá Studio" class="admin-logo" />
+          <p class="admin-sidebar-copy">Gestione la tienda sin exponer herramientas al público.</p>
+        </div>
+        <nav class="admin-nav">
+          <button class="admin-nav-btn is-active" data-section="dashboard">Resumen</button>
+          <button class="admin-nav-btn" data-section="categories">Categorías</button>
+          <button class="admin-nav-btn" data-section="products">Productos</button>
+          <button class="admin-nav-btn" data-section="settings">Configuración</button>
+          <button class="admin-nav-btn" data-section="security">Seguridad</button>
+        </nav>
+        <div class="admin-sidebar-footer">
+          <a class="btn btn-ghost" href="/index.html" target="_blank" rel="noreferrer">Ver tienda</a>
+          <button class="btn btn-dark" id="logoutButton">Cerrar sesión</button>
+        </div>
+      </aside>
+
+      <main class="admin-main">
+        <header class="admin-topbar">
+          <div>
+            <span class="overline">Administración</span>
+            <h1 id="adminHeading">Resumen general</h1>
+          </div>
+          <div class="admin-user-chip" id="adminUserChip"></div>
+        </header>
+
+        <section class="admin-section is-visible" id="section-dashboard">
+          <div class="admin-stats" id="dashboardStats"></div>
+          <div class="admin-panel">
+            <h2>Estado de la tienda</h2>
+            <p>Este panel está preparado para gestionar catálogo, imagen de marca y datos de cierre de compra sin requerir cuentas de cliente.</p>
+          </div>
+        </section>
+
+        <section class="admin-section" id="section-categories">
+          <div class="admin-grid-two">
+            <div class="admin-panel">
+              <h2>Nueva categoría</h2>
+              <form id="categoryForm" class="admin-form stack-gap">
+                <input type="hidden" name="id" />
+                <label><span>Nombre</span><input name="name" required /></label>
+                <label><span>Slug</span><input name="slug" placeholder="opcional" /></label>
+                <label><span>Descripción</span><textarea name="description" rows="4"></textarea></label>
+                <label class="check-row"><input type="checkbox" name="is_active" checked /> Activa</label>
+                <div class="inline-actions">
+                  <button class="btn btn-primary" type="submit">Guardar</button>
+                  <button class="btn btn-secondary" type="button" id="resetCategoryForm">Limpiar</button>
+                </div>
+                <p class="form-message" id="categoryMessage"></p>
+              </form>
+            </div>
+            <div class="admin-panel">
+              <h2>Categorías creadas</h2>
+              <div class="admin-list" id="categoriesList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section" id="section-products">
+          <div class="admin-grid-two admin-grid-wide-left">
+            <div class="admin-panel">
+              <h2>Producto</h2>
+              <form id="productForm" class="admin-form stack-gap">
+                <input type="hidden" name="id" />
+                <label><span>Nombre</span><input name="name" required /></label>
+                <label><span>Slug</span><input name="slug" placeholder="opcional" /></label>
+                <label><span>Categoría</span><select name="category_id" id="productCategorySelect"></select></label>
+                <div class="admin-grid-two compact-grid">
+                  <label><span>Precio</span><input name="price" type="number" step="0.01" required /></label>
+                  <label><span>Precio anterior</span><input name="compare_at_price" type="number" step="0.01" /></label>
+                </div>
+                <label><span>Tag</span><input name="tag" placeholder="Nuevo, Premium, Top venta..." /></label>
+                <label><span>Tallas</span><input name="sizes" placeholder="S,M,L" /></label>
+                <label><span>Imagen (ruta)</span><input name="image_url" placeholder="/assets/products/camisa-nube.svg" /></label>
+                <label><span>Descripción corta</span><textarea name="short_description" rows="2"></textarea></label>
+                <label><span>Descripción</span><textarea name="description" rows="5"></textarea></label>
+                <label class="check-row"><input type="checkbox" name="featured" /> Destacado</label>
+                <label class="check-row"><input type="checkbox" name="is_active" checked /> Activo</label>
+                <div class="inline-actions">
+                  <button class="btn btn-primary" type="submit">Guardar</button>
+                  <button class="btn btn-secondary" type="button" id="resetProductForm">Limpiar</button>
+                </div>
+                <p class="form-message" id="productMessage"></p>
+              </form>
+            </div>
+            <div class="admin-panel">
+              <h2>Productos</h2>
+              <div class="admin-list product-admin-list" id="productsList"></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-section" id="section-settings">
+          <div class="admin-panel">
+            <h2>Configuración general</h2>
+            <form id="settingsForm" class="admin-form stack-gap">
+              <div class="admin-grid-two compact-grid">
+                <label><span>Marca</span><input name="brand_name" required /></label>
+                <label><span>Moneda</span><input name="currency" required /></label>
+              </div>
+              <label><span>Tagline</span><textarea name="tagline" rows="2"></textarea></label>
+              <div class="admin-grid-two compact-grid">
+                <label><span>WhatsApp</span><input name="whatsapp_number" /></label>
+                <label><span>Link de pago</span><input name="payment_link" /></label>
+              </div>
+              <div class="admin-grid-two compact-grid">
+                <label><span>Email</span><input name="email" /></label>
+                <label><span>Instagram</span><input name="instagram" /></label>
+              </div>
+              <label><span>Nota de envío</span><textarea name="shipping_note" rows="3"></textarea></label>
+              <button class="btn btn-primary" type="submit">Guardar configuración</button>
+              <p class="form-message" id="settingsMessage"></p>
+            </form>
+          </div>
+        </section>
+
+        <section class="admin-section" id="section-security">
+          <div class="admin-panel admin-panel-narrow">
+            <h2>Cambiar contraseña</h2>
+            <form id="passwordForm" class="admin-form stack-gap">
+              <label><span>Contraseña actual</span><input name="current_password" type="password" required /></label>
+              <label><span>Nueva contraseña</span><input name="new_password" type="password" required /></label>
+              <button class="btn btn-primary" type="submit">Actualizar contraseña</button>
+              <p class="form-message" id="passwordMessage"></p>
+            </form>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/admin.js"></script>
+  </body>
+</html>

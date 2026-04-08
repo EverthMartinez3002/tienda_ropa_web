@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Velá Studio</title>
+    <meta name="description" content="Tienda de ropa con estética boutique, catálogo elegante y compra por WhatsApp o link de pago." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body data-page="store">
+    <div class="announcement-bar">Envíos a nivel nacional · Compra por WhatsApp o link de pago</div>
+    <header class="site-header shell">
+      <a class="brand-mark" href="/index.html">
+        <img src="/assets/logo.svg" alt="Velá Studio" />
+      </a>
+      <nav class="site-nav">
+        <a href="#new">Lo nuevo</a>
+        <a href="#catalogo">Catálogo</a>
+        <a href="#about">Marca</a>
+        <a href="#contacto">Contacto</a>
+      </nav>
+      <div class="site-actions">
+        <button class="icon-btn" id="mobileMenuBtn" aria-label="Abrir menú">☰</button>
+        <button class="bag-btn" id="openCartButton">Bolsa <span id="cartCount">0</span></button>
+      </div>
+    </header>
+
+    <div class="mobile-sheet" id="mobileSheet" hidden>
+      <a href="#new">Lo nuevo</a>
+      <a href="#catalogo">Catálogo</a>
+      <a href="#about">Marca</a>
+      <a href="#contacto">Contacto</a>
+    </div>
+
+    <main>
+      <section class="hero shell">
+        <div class="hero-copy">
+          <span class="overline">Colección seleccionada</span>
+          <h1 id="brandName">Velá Studio</h1>
+          <p id="brandTagline">Piezas pensadas para vestir bonito todos los días.</p>
+          <div class="hero-buttons">
+            <a class="btn btn-primary" href="#catalogo">Comprar ahora</a>
+            <a class="btn btn-secondary" href="#new">Ver destacados</a>
+          </div>
+          <div class="hero-points">
+            <div><strong>Estilo boutique</strong><span>Diseño limpio y editorial</span></div>
+            <div><strong>Compra fácil</strong><span>WhatsApp o link de pago</span></div>
+            <div><strong>Atención directa</strong><span>Sin cuentas obligatorias</span></div>
+          </div>
+        </div>
+        <div class="hero-art">
+          <div class="hero-card hero-card-top">Nueva temporada</div>
+          <div class="hero-card hero-card-bottom">Looks suaves</div>
+          <div class="hero-figure hero-figure-left"></div>
+          <div class="hero-figure hero-figure-right"></div>
+        </div>
+      </section>
+
+      <section class="featured-shell shell" id="new">
+        <div class="section-topline">
+          <div>
+            <span class="overline">Lo + nuevo</span>
+            <h2>Una selección pensada para destacar desde el primer vistazo.</h2>
+          </div>
+          <p>Prendas con mejor salida visual para una vitrina elegante, moderna y lista para mostrar al público.</p>
+        </div>
+        <div class="featured-grid" id="featuredGrid"></div>
+      </section>
+
+      <section class="collection-strip shell" id="about">
+        <article>
+          <span class="overline">Camisas</span>
+          <h3>Ligereza y estructura</h3>
+          <p>Piezas limpias para un catálogo femenino, actual y fácil de vender.</p>
+        </article>
+        <article>
+          <span class="overline">Vestidos</span>
+          <h3>Fluidez y presencia</h3>
+          <p>Opciones midi y de ocasión para elevar la propuesta de la tienda.</p>
+        </article>
+        <article>
+          <span class="overline">Sets y básicos</span>
+          <h3>Looks completos</h3>
+          <p>Prendas versátiles que facilitan la decisión de compra.</p>
+        </article>
+      </section>
+
+      <section class="catalog-shell shell" id="catalogo">
+        <div class="section-topline section-topline-large">
+          <div>
+            <span class="overline">Catálogo</span>
+            <h2>Explore las piezas disponibles.</h2>
+          </div>
+          <p id="shippingNote">Envíos en 24 a 48 horas hábiles a nivel nacional.</p>
+        </div>
+
+        <div class="catalog-toolbar">
+          <div class="search-field">
+            <input id="searchInput" type="search" placeholder="Buscar camisas, vestidos, sets..." />
+          </div>
+          <div class="filters" id="categoryFilters">
+            <button class="chip is-active" data-category="all">Todo</button>
+          </div>
+        </div>
+
+        <div class="products-grid" id="productGrid"></div>
+      </section>
+
+      <section class="newsletter-shell shell" id="contacto">
+        <div>
+          <span class="overline">Contacto</span>
+          <h2>Una tienda pensada para mostrarse bonita desde el primer día.</h2>
+          <p>Atención personalizada, selección cuidada y experiencia simple para comprar sin fricción.</p>
+        </div>
+        <div class="contact-card">
+          <a id="contactEmail" href="#">hola@velastudio.com</a>
+          <a id="contactInstagram" href="#">@velastudio</a>
+          <button class="btn btn-primary" id="contactWhatsAppBtn">Escribir por WhatsApp</button>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer shell">
+      <img src="/assets/logo.svg" alt="Velá Studio" />
+      <p>Velá Studio · Catálogo de moda con compra simple y presentación elegante.</p>
+    </footer>
+
+    <aside class="cart-drawer" id="cartDrawer" aria-hidden="true">
+      <div class="drawer-head">
+        <div>
+          <span class="overline">Bolsa</span>
+          <h3>Su pedido</h3>
+        </div>
+        <button class="icon-btn" id="closeCartButton" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="drawer-body" id="cartItems"></div>
+      <div class="drawer-footer">
+        <div class="drawer-row"><span>Subtotal</span><strong id="cartSubtotal">$0.00</strong></div>
+        <div class="drawer-row muted"><span>Envío</span><span>A coordinar</span></div>
+        <button class="btn btn-secondary" id="clearCartButton">Vaciar bolsa</button>
+        <button class="btn btn-primary" id="checkoutWhatsAppButton">Continuar por WhatsApp</button>
+        <button class="btn btn-dark" id="checkoutPaymentButton">Ir a link de pago</button>
+      </div>
+    </aside>
+    <div class="overlay" id="drawerOverlay" hidden></div>
+
+    <template id="productCardTemplate">
+      <article class="product-card">
+        <a class="product-thumb-link" href="#">
+          <div class="product-thumb-wrap">
+            <img class="product-thumb" src="" alt="" />
+            <span class="product-tag"></span>
+          </div>
+        </a>
+        <div class="product-body">
+          <div class="product-heading">
+            <div>
+              <a class="product-link" href="#"><h3 class="product-name"></h3></a>
+              <p class="product-short"></p>
+            </div>
+            <div class="price-block">
+              <strong class="product-price"></strong>
+              <span class="product-compare"></span>
+            </div>
+          </div>
+          <div class="product-meta-row">
+            <span class="product-category"></span>
+            <span class="product-sizes"></span>
+          </div>
+          <div class="product-actions">
+            <a class="btn btn-ghost product-detail-link" href="#">Ver detalle</a>
+            <button class="btn btn-primary add-to-cart-btn">Agregar</button>
+          </div>
+        </div>
+      </article>
+    </template>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/store.js"></script>
+  </body>
+</html>
