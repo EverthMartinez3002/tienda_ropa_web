@@ -1,50 +1,31 @@
-# Velá Studio - Tienda de ropa seria
+# Velá Studio - versión endurecida
 
-Base seria de una tienda de ropa con:
+Esta versión refuerza la seguridad básica de la demo:
 
-- Tienda pública
-- Página de producto
-- Carrito persistente
-- Opción de vaciar la bolsa antes de finalizar
-- Checkout por WhatsApp
-- Checkout por link de pago
-- Panel admin
-- Login de administrador
-- CRUD de categorías
-- CRUD de productos
-- Configuración general de la tienda
-- Backend con Node.js + Express
-- PostgreSQL
+- cookies de sesión `HttpOnly`, `Secure` en producción y `SameSite=Strict`
+- token CSRF para operaciones del panel admin
+- hashing de sesión en base de datos
+- rate limit básico en login y escritura admin
+- validación estricta de links de pago (`https` y allowlist opcional de dominios)
+- validación de correo, WhatsApp, URLs de imagen y política mínima de contraseña
+- auditoría básica de acciones administrativas
+- headers de seguridad y `vercel.json`
+- enlace de pago servido desde `/checkout/payment` para no exponer directamente la URL externa en la configuración pública
 
-## Acceso al admin
+## Variables importantes
 
-- URL: `http://localhost:3000/admin.html`
-- correo: `admin@velastudio.local`
-- clave: `admin123`
+Revise `.env.example` y cambie como mínimo:
 
-## Ejecutar con Docker
+- `ADMIN_PASSWORD`
+- `PASSWORD_PEPPER`
+- `PAYMENT_ALLOWED_HOSTS`
+- `DATABASE_URL`
 
-```bash
-cp .env.example .env
-docker compose up --build
-```
+## Admin
 
-Luego abra:
+- URL: `/admin.html`
+- El formulario ya no trae credenciales prellenadas.
 
-- `http://localhost:3000`
-- `http://localhost:3000/admin.html`
+## Nota de despliegue
 
-## Ejecutar sin Docker
-
-1. Cree una base PostgreSQL.
-2. Configure `DATABASE_URL`.
-3. Instale dependencias:
-
-```bash
-npm install
-npm start
-```
-
-## Nota
-
-La tienda pública no requiere cuenta de cliente. El cierre de compra está pensado para WhatsApp y link de pago, como usted pidió.
+El proyecto sigue siendo una app Node + PostgreSQL tradicional. Para Vercel, lo recomendable es usar variables de entorno del proyecto y desplegar el backend de forma compatible con Vercel Functions o dejar el backend/DB fuera de Vercel si solo quiere mostrar la demo visual.

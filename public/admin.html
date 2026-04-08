@@ -4,6 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin | Velá Studio</title>
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="referrer" content="no-referrer" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -15,14 +17,14 @@
         <span class="overline">Panel admin</span>
         <h1>Velá Studio</h1>
         <p>Ingrese con sus credenciales para gestionar categorías, productos y configuración.</p>
-        <form id="loginForm" class="admin-form stack-gap">
+        <form id="loginForm" class="admin-form stack-gap" autocomplete="on">
           <label>
             <span>Correo</span>
-            <input type="email" name="email" value="admin@velastudio.local" required />
+            <input type="email" name="email" autocomplete="username" required />
           </label>
           <label>
             <span>Contraseña</span>
-            <input type="password" name="password" value="admin123" required />
+            <input type="password" name="password" autocomplete="current-password" required />
           </label>
           <button class="btn btn-primary" type="submit">Entrar al panel</button>
           <p class="form-message" id="loginMessage"></p>
@@ -44,7 +46,7 @@
           <button class="admin-nav-btn" data-section="security">Seguridad</button>
         </nav>
         <div class="admin-sidebar-footer">
-          <a class="btn btn-ghost" href="/index.html" target="_blank" rel="noreferrer">Ver tienda</a>
+          <a class="btn btn-ghost" href="/index.html" target="_blank" rel="noopener noreferrer">Ver tienda</a>
           <button class="btn btn-dark" id="logoutButton">Cerrar sesión</button>
         </div>
       </aside>
@@ -72,9 +74,9 @@
               <h2>Nueva categoría</h2>
               <form id="categoryForm" class="admin-form stack-gap">
                 <input type="hidden" name="id" />
-                <label><span>Nombre</span><input name="name" required /></label>
-                <label><span>Slug</span><input name="slug" placeholder="opcional" /></label>
-                <label><span>Descripción</span><textarea name="description" rows="4"></textarea></label>
+                <label><span>Nombre</span><input name="name" maxlength="120" required /></label>
+                <label><span>Slug</span><input name="slug" maxlength="140" placeholder="opcional" /></label>
+                <label><span>Descripción</span><textarea name="description" rows="4" maxlength="600"></textarea></label>
                 <label class="check-row"><input type="checkbox" name="is_active" checked /> Activa</label>
                 <div class="inline-actions">
                   <button class="btn btn-primary" type="submit">Guardar</button>
@@ -96,18 +98,18 @@
               <h2>Producto</h2>
               <form id="productForm" class="admin-form stack-gap">
                 <input type="hidden" name="id" />
-                <label><span>Nombre</span><input name="name" required /></label>
-                <label><span>Slug</span><input name="slug" placeholder="opcional" /></label>
+                <label><span>Nombre</span><input name="name" maxlength="120" required /></label>
+                <label><span>Slug</span><input name="slug" maxlength="140" placeholder="opcional" /></label>
                 <label><span>Categoría</span><select name="category_id" id="productCategorySelect"></select></label>
                 <div class="admin-grid-two compact-grid">
-                  <label><span>Precio</span><input name="price" type="number" step="0.01" required /></label>
-                  <label><span>Precio anterior</span><input name="compare_at_price" type="number" step="0.01" /></label>
+                  <label><span>Precio</span><input name="price" type="number" step="0.01" min="0" required /></label>
+                  <label><span>Precio anterior</span><input name="compare_at_price" type="number" step="0.01" min="0" /></label>
                 </div>
-                <label><span>Tag</span><input name="tag" placeholder="Nuevo, Premium, Top venta..." /></label>
-                <label><span>Tallas</span><input name="sizes" placeholder="S,M,L" /></label>
-                <label><span>Imagen (ruta)</span><input name="image_url" placeholder="/assets/products/camisa-nube.svg" /></label>
-                <label><span>Descripción corta</span><textarea name="short_description" rows="2"></textarea></label>
-                <label><span>Descripción</span><textarea name="description" rows="5"></textarea></label>
+                <label><span>Tag</span><input name="tag" maxlength="40" placeholder="Nuevo, Premium, Top venta..." /></label>
+                <label><span>Tallas</span><input name="sizes" maxlength="120" placeholder="S,M,L" /></label>
+                <label><span>Imagen (ruta segura)</span><input name="image_url" maxlength="300" placeholder="/assets/products/camisa-nube.svg" /></label>
+                <label><span>Descripción corta</span><textarea name="short_description" rows="2" maxlength="240"></textarea></label>
+                <label><span>Descripción</span><textarea name="description" rows="5" maxlength="4000"></textarea></label>
                 <label class="check-row"><input type="checkbox" name="featured" /> Destacado</label>
                 <label class="check-row"><input type="checkbox" name="is_active" checked /> Activo</label>
                 <div class="inline-actions">
@@ -129,19 +131,19 @@
             <h2>Configuración general</h2>
             <form id="settingsForm" class="admin-form stack-gap">
               <div class="admin-grid-two compact-grid">
-                <label><span>Marca</span><input name="brand_name" required /></label>
-                <label><span>Moneda</span><input name="currency" required /></label>
+                <label><span>Marca</span><input name="brand_name" maxlength="120" required /></label>
+                <label><span>Moneda</span><input name="currency" maxlength="10" required /></label>
               </div>
-              <label><span>Tagline</span><textarea name="tagline" rows="2"></textarea></label>
+              <label><span>Tagline</span><textarea name="tagline" rows="2" maxlength="220"></textarea></label>
               <div class="admin-grid-two compact-grid">
-                <label><span>WhatsApp</span><input name="whatsapp_number" /></label>
-                <label><span>Link de pago</span><input name="payment_link" /></label>
+                <label><span>WhatsApp</span><input name="whatsapp_number" maxlength="20" placeholder="50370000000" /></label>
+                <label><span>Link de pago HTTPS</span><input name="payment_link" maxlength="500" placeholder="https://..." /></label>
               </div>
               <div class="admin-grid-two compact-grid">
-                <label><span>Email</span><input name="email" /></label>
-                <label><span>Instagram</span><input name="instagram" /></label>
+                <label><span>Email</span><input name="email" type="email" maxlength="160" /></label>
+                <label><span>Instagram</span><input name="instagram" maxlength="80" placeholder="@velastudio" /></label>
               </div>
-              <label><span>Nota de envío</span><textarea name="shipping_note" rows="3"></textarea></label>
+              <label><span>Nota de envío</span><textarea name="shipping_note" rows="3" maxlength="240"></textarea></label>
               <button class="btn btn-primary" type="submit">Guardar configuración</button>
               <p class="form-message" id="settingsMessage"></p>
             </form>
@@ -151,9 +153,10 @@
         <section class="admin-section" id="section-security">
           <div class="admin-panel admin-panel-narrow">
             <h2>Cambiar contraseña</h2>
-            <form id="passwordForm" class="admin-form stack-gap">
-              <label><span>Contraseña actual</span><input name="current_password" type="password" required /></label>
-              <label><span>Nueva contraseña</span><input name="new_password" type="password" required /></label>
+            <p>Use una contraseña nueva de al menos 12 caracteres con mayúsculas, minúsculas y números.</p>
+            <form id="passwordForm" class="admin-form stack-gap" autocomplete="off">
+              <label><span>Contraseña actual</span><input name="current_password" type="password" autocomplete="current-password" required /></label>
+              <label><span>Nueva contraseña</span><input name="new_password" type="password" autocomplete="new-password" minlength="12" required /></label>
               <button class="btn btn-primary" type="submit">Actualizar contraseña</button>
               <p class="form-message" id="passwordMessage"></p>
             </form>

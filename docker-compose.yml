@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_DB: tienda_ropa
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-tienda_ropa}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -16,12 +16,15 @@ services:
     depends_on:
       - db
     environment:
-      PORT: 3000
-      DATABASE_URL: postgres://postgres:postgres@db:5432/tienda_ropa
-      SESSION_DAYS: 7
-      ADMIN_EMAIL: admin@velastudio.local
-      ADMIN_PASSWORD: admin123
-      BRAND_NAME: Velá Studio
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: ${PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/tienda_ropa}
+      SESSION_HOURS: ${SESSION_HOURS:-12}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@velastudio.com}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_123!}
+      PASSWORD_PEPPER: ${PASSWORD_PEPPER:-change-this-extra-secret}
+      PAYMENT_ALLOWED_HOSTS: ${PAYMENT_ALLOWED_HOSTS:-checkout.stripe.com,paypal.com,www.paypal.com}
+      BRAND_NAME: ${BRAND_NAME:-Velá Studio}
     ports:
       - "3000:3000"
 

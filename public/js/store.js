@@ -34,8 +34,11 @@ const elements = {
   contactWhatsAppBtn: document.getElementById('contactWhatsAppBtn'),
   mobileMenuBtn: document.getElementById('mobileMenuBtn'),
   mobileSheet: document.getElementById('mobileSheet'),
-  siteHeader: document.querySelector('.site-header'),
 };
+
+function e(value) {
+  return window.api.escapeHtml(value);
+}
 
 function money(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
@@ -49,7 +52,7 @@ function primarySize(product) {
   return Array.isArray(product.sizes) && product.sizes.length ? product.sizes[0] : 'S';
 }
 
-function cartSubtotal() {
+function subtotalAmount() {
   return state.cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
 }
 
@@ -57,6 +60,9 @@ function countItems() {
   return state.cart.reduce((sum, item) => sum + item.quantity, 0);
 }
 
+function normalizeHandle(handle) {
+  return String(handle || '').replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '');
+}
 
 function syncHeaderState() {
   document.body.classList.toggle('nav-scrolled', window.scrollY > 24);
@@ -86,8 +92,9 @@ function closeCart() {
 
 function addToCart(product, size = primarySize(product)) {
   const existing = state.cart.find((item) => item.id === product.id && item.size === size);
-  if (existing) existing.quantity += 1;
-  else {
+  if (existing) {
+    existing.quantity += 1;
+  } else {
     state.cart.push({
       id: product.id,
       slug: product.slug,
@@ -124,26 +131,30 @@ function clearCart() {
 
 function buildWhatsAppText() {
   const lines = state.cart.map((item) => `• ${item.name} · Talla ${item.size} · x${item.quantity} · ${money(item.price * item.quantity)}`);
-  return `Hola, quiero realizar este pedido:%0A%0A${lines.join('%0A')}%0A%0ASubtotal: ${encodeURIComponent(money(cartSubtotal()))}`;
+  return `Hola, quiero realizar este pedido:\n\n${lines.join('\n')}\n\nSubtotal: ${money(subtotalAmount())}`;
+}
+
+function openWhatsApp(number, text = '') {
+  const target = text ? `https://wa.me/${number}?text=${encodeURIComponent(text)}` : `https://wa.me/${number}`;
+  window.api.openExternal(target);
 }
 
 function checkoutByWhatsApp() {
   if (!state.cart.length) return alert('Primero agregue al menos un producto a la bolsa.');
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
   if (!number) return alert('No se ha configurado el número de WhatsApp.');
-  window.open(`https://wa.me/${number}?text=${buildWhatsAppText()}`, '_blank');
+  openWhatsApp(number, buildWhatsAppText());
 }
 
 function checkoutByPaymentLink() {
   if (!state.cart.length) return alert('Primero agregue al menos un producto a la bolsa.');
-  const link = state.settings?.payment_link || '';
-  if (!link) return alert('No se ha configurado el link de pago.');
-  window.open(link, '_blank');
+  if (!state.settings?.payment_enabled) return alert('No se ha configurado un link de pago seguro.');
+  window.api.openExternal('/checkout/payment');
 }
 
 function renderCart() {
   elements.cartCount.textContent = String(countItems());
-  elements.cartSubtotal.textContent = money(cartSubtotal());
+  elements.cartSubtotal.textContent = money(subtotalAmount());
 
   if (!state.cart.length) {
     elements.cartItems.innerHTML = `
@@ -157,10 +168,10 @@ function renderCart() {
 
   elements.cartItems.innerHTML = state.cart.map((item, index) => `
     <article class="cart-line">
-      <img src="${item.image_url}" alt="${item.name}" />
+      <img src="${e(item.image_url)}" alt="${e(item.name)}" />
       <div class="cart-line-copy">
-        <strong>${item.name}</strong>
-        <p>Talla ${item.size}</p>
+        <strong>${e(item.name)}</strong>
+        <p>Talla ${e(item.size)}</p>
         <p>${money(item.price)}</p>
         <div class="cart-line-actions">
           <button data-action="decrease" data-index="${index}">−</button>
@@ -195,11 +206,11 @@ function renderFeatured() {
   if (!elements.featuredGrid) return;
   elements.featuredGrid.innerHTML = state.featured.slice(0, 3).map((product) => `
     <article class="feature-card">
-      <img src="${product.image_url}" alt="${product.name}" />
+      <img src="${e(product.image_url)}" alt="${e(product.name)}" />
       <div>
-        <span class="overline">${product.tag || 'Destacado'}</span>
-        <h3>${product.name}</h3>
-        <p>${product.short_description}</p>
+        <span class="overline">${e(product.tag || 'Destacado')}</span>
+        <h3>${e(product.name)}</h3>
+        <p>${e(product.short_description)}</p>
         <a class="btn btn-ghost" href="/product.html?slug=${encodeURIComponent(product.slug)}">Ver pieza</a>
       </div>
     </article>
@@ -208,7 +219,7 @@ function renderFeatured() {
 
 function renderCategoryFilters() {
   const buttons = ['<button class="chip is-active" data-category="all">Todo</button>']
-    .concat(state.categories.map((category) => `<button class="chip" data-category="${category.slug}">${category.name}</button>`));
+    .concat(state.categories.map((category) => `<button class="chip" data-category="${e(category.slug)}">${e(category.name)}</button>`));
   elements.categoryFilters.innerHTML = buttons.join('');
 
   elements.categoryFilters.querySelectorAll('[data-category]').forEach((button) => {
@@ -272,9 +283,10 @@ async function loadData() {
   elements.brandTagline.textContent = settings.tagline;
   elements.shippingNote.textContent = settings.shipping_note;
   elements.contactEmail.textContent = settings.email;
-  elements.contactEmail.href = `mailto:${settings.email}`;
+  elements.contactEmail.href = `mailto:${encodeURIComponent(settings.email)}`;
   elements.contactInstagram.textContent = settings.instagram;
-  elements.contactInstagram.href = `https://instagram.com/${settings.instagram.replace('@', '')}`;
+  const handle = normalizeHandle(settings.instagram);
+  elements.contactInstagram.href = handle ? `https://instagram.com/${handle}` : '#';
 
   renderCategoryFilters();
   renderFeatured();
@@ -300,7 +312,7 @@ elements.contactWhatsAppBtn.addEventListener('click', () => {
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
   if (!number) return alert('No se ha configurado el número de WhatsApp.');
   if (!state.cart.length) {
-    window.open(`https://wa.me/${number}`, '_blank');
+    openWhatsApp(number);
     return;
   }
   checkoutByWhatsApp();

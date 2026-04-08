@@ -33,6 +33,10 @@ const elements = {
   checkoutPaymentButton: document.getElementById('checkoutPaymentButton'),
 };
 
+function e(value) {
+  return window.api.escapeHtml(value);
+}
+
 function money(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
 }
@@ -41,7 +45,7 @@ function saveCart() {
   localStorage.setItem(CART_KEY, JSON.stringify(state.cart));
 }
 
-function cartSubtotal() {
+function subtotalAmount() {
   return state.cart.reduce((sum, item) => sum + Number(item.price) * item.quantity, 0);
 }
 
@@ -63,17 +67,17 @@ function closeCart() {
 
 function renderCart() {
   elements.cartCount.textContent = String(countItems());
-  elements.cartSubtotal.textContent = money(cartSubtotal());
+  elements.cartSubtotal.textContent = money(subtotalAmount());
   if (!state.cart.length) {
     elements.cartItems.innerHTML = '<div class="empty-state"><h3>Su bolsa está vacía</h3><p>Agregue una pieza para continuar.</p></div>';
     return;
   }
   elements.cartItems.innerHTML = state.cart.map((item, index) => `
     <article class="cart-line">
-      <img src="${item.image_url}" alt="${item.name}" />
+      <img src="${e(item.image_url)}" alt="${e(item.name)}" />
       <div class="cart-line-copy">
-        <strong>${item.name}</strong>
-        <p>Talla ${item.size}</p>
+        <strong>${e(item.name)}</strong>
+        <p>Talla ${e(item.size)}</p>
         <p>${money(item.price)}</p>
         <div class="cart-line-actions">
           <button data-action="decrease" data-index="${index}">−</button>
@@ -119,7 +123,7 @@ function addCurrentProductToCart() {
 
 function renderSizes() {
   elements.sizeOptions.innerHTML = state.product.sizes.map((size, index) => `
-    <button class="size-chip ${index === 0 ? 'is-active' : ''}" data-size="${size}">${size}</button>
+    <button class="size-chip ${index === 0 ? 'is-active' : ''}" data-size="${e(size)}">${e(size)}</button>
   `).join('');
   state.selectedSize = state.product.sizes[0] || 'S';
   elements.sizeOptions.querySelectorAll('[data-size]').forEach((button) => {
@@ -135,17 +139,13 @@ function checkoutByWhatsAppSingle() {
   const size = state.selectedSize || state.product.sizes[0] || 'S';
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
   if (!number) return alert('No se ha configurado el número de WhatsApp.');
-  const text = encodeURIComponent(`Hola, quiero comprar este producto:
-
-${state.product.name}
-Talla: ${size}
-Precio: ${money(state.product.price)}`);
-  window.open(`https://wa.me/${number}?text=${text}`, '_blank');
+  const text = `Hola, quiero comprar este producto:\n\n${state.product.name}\nTalla: ${size}\nPrecio: ${money(state.product.price)}`;
+  window.api.openExternal(`https://wa.me/${number}?text=${encodeURIComponent(text)}`);
 }
 
-function buildWhatsAppCartText() {
+function buildWhatsAppCartUrl() {
   const lines = state.cart.map((item) => `• ${item.name} · Talla ${item.size} · x${item.quantity} · ${money(item.price * item.quantity)}`);
-  return `https://wa.me/${(state.settings?.whatsapp_number || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, quiero realizar este pedido:\n\n${lines.join('\n')}\n\nSubtotal: ${money(cartSubtotal())}`)}`;
+  return `https://wa.me/${(state.settings?.whatsapp_number || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, quiero realizar este pedido:\n\n${lines.join('\n')}\n\nSubtotal: ${money(subtotalAmount())}`)}`;
 }
 
 async function loadProduct() {
@@ -189,12 +189,12 @@ elements.addProductToCart.addEventListener('click', addCurrentProductToCart);
 elements.buyByWhatsApp.addEventListener('click', checkoutByWhatsAppSingle);
 elements.checkoutWhatsAppButton.addEventListener('click', () => {
   if (!state.cart.length) return alert('Primero agregue un producto a la bolsa.');
-  window.open(buildWhatsAppCartText(), '_blank');
+  window.api.openExternal(buildWhatsAppCartUrl());
 });
 elements.checkoutPaymentButton.addEventListener('click', () => {
   if (!state.cart.length) return alert('Primero agregue un producto a la bolsa.');
-  if (!state.settings?.payment_link) return alert('No se ha configurado el link de pago.');
-  window.open(state.settings.payment_link, '_blank');
+  if (!state.settings?.payment_enabled) return alert('No se ha configurado un link de pago seguro.');
+  window.api.openExternal('/checkout/payment');
 });
 
 loadProduct().catch((error) => {

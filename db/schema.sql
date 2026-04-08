@@ -9,8 +9,23 @@ CREATE TABLE IF NOT EXISTS admins (
 CREATE TABLE IF NOT EXISTS admin_sessions (
   id SERIAL PRIMARY KEY,
   admin_id INTEGER NOT NULL REFERENCES admins(id) ON DELETE CASCADE,
-  token TEXT NOT NULL UNIQUE,
+  token_hash TEXT NOT NULL UNIQUE,
+  csrf_token_hash TEXT NOT NULL,
+  ip_address TEXT,
+  user_agent TEXT,
   expires_at TIMESTAMPTZ NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS admin_audit_logs (
+  id SERIAL PRIMARY KEY,
+  admin_id INTEGER REFERENCES admins(id) ON DELETE SET NULL,
+  action TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  entity_id TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -11,6 +11,10 @@ function field(form, name) {
   return form.elements.namedItem(name);
 }
 
+function e(value) {
+  return window.api.escapeHtml(value);
+}
+
 const el = {
   loginScreen: document.getElementById('loginScreen'),
   adminApp: document.getElementById('adminApp'),
@@ -62,14 +66,14 @@ function setSection(section) {
 }
 
 function mountCategoryOptions() {
-  el.productCategorySelect.innerHTML = '<option value="">Sin categoría</option>' + state.categories.map((category) => `<option value="${category.id}">${category.name}</option>`).join('');
+  el.productCategorySelect.innerHTML = '<option value="">Sin categoría</option>' + state.categories.map((category) => `<option value="${category.id}">${e(category.name)}</option>`).join('');
 }
 
 function renderDashboard(stats) {
   el.dashboardStats.innerHTML = `
-    <article class="stat-card"><span>Productos activos</span><strong>${stats.total_products}</strong></article>
-    <article class="stat-card"><span>Categorías activas</span><strong>${stats.total_categories}</strong></article>
-    <article class="stat-card"><span>Destacados</span><strong>${stats.featured_products}</strong></article>
+    <article class="stat-card"><span>Productos activos</span><strong>${Number(stats.total_products || 0)}</strong></article>
+    <article class="stat-card"><span>Categorías activas</span><strong>${Number(stats.total_categories || 0)}</strong></article>
+    <article class="stat-card"><span>Destacados</span><strong>${Number(stats.featured_products || 0)}</strong></article>
   `;
 }
 
@@ -81,9 +85,9 @@ function renderCategories() {
   el.categoriesList.innerHTML = state.categories.map((category) => `
     <article class="admin-item-card">
       <div>
-        <strong>${category.name}</strong>
-        <p>${category.description || 'Sin descripción.'}</p>
-        <small>${category.slug} · ${category.is_active ? 'Activa' : 'Inactiva'}</small>
+        <strong>${e(category.name)}</strong>
+        <p>${e(category.description || 'Sin descripción.')}</p>
+        <small>${e(category.slug)} · ${category.is_active ? 'Activa' : 'Inactiva'}</small>
       </div>
       <div class="admin-item-actions">
         <button class="btn btn-ghost" data-edit-category="${category.id}">Editar</button>
@@ -107,11 +111,11 @@ function renderProducts() {
   }
   el.productsList.innerHTML = state.products.map((product) => `
     <article class="admin-item-card product-card-admin">
-      <img src="${product.image_url}" alt="${product.name}" />
+      <img src="${e(product.image_url)}" alt="${e(product.name)}" />
       <div>
-        <strong>${product.name}</strong>
-        <p>${product.short_description || 'Sin descripción corta.'}</p>
-        <small>${product.category_name || 'Sin categoría'} · $${Number(product.price).toFixed(2)} · ${product.is_active ? 'Activo' : 'Oculto'}</small>
+        <strong>${e(product.name)}</strong>
+        <p>${e(product.short_description || 'Sin descripción corta.')}</p>
+        <small>${e(product.category_name || 'Sin categoría')} · $${Number(product.price).toFixed(2)} · ${product.is_active ? 'Activo' : 'Oculto'}</small>
       </div>
       <div class="admin-item-actions vertical-actions">
         <button class="btn btn-ghost" data-edit-product="${product.id}">Editar</button>
@@ -149,6 +153,7 @@ async function removeCategory(id) {
   if (!confirm('¿Desea eliminar esta categoría?')) return;
   await window.api.request(`/api/admin/categories/${id}`, { method: 'DELETE' });
   await loadCategories();
+  await loadDashboard();
 }
 
 function fillProductForm(id) {
@@ -302,7 +307,8 @@ el.passwordForm.addEventListener('submit', async (event) => {
     const data = formToObject(el.passwordForm);
     await window.api.request('/api/admin/change-password', { method: 'PUT', body: JSON.stringify(data) });
     el.passwordForm.reset();
-    showMessage(el.passwordMessage, 'Contraseña actualizada correctamente.', true);
+    showMessage(el.passwordMessage, 'Contraseña actualizada. La sesión actual se cerró por seguridad.', true);
+    setTimeout(() => window.location.reload(), 1200);
   } catch (error) {
     showMessage(el.passwordMessage, error.message);
   }
