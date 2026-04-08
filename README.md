@@ -1,31 +1,37 @@
-# Velá Studio - versión endurecida
+# Tienda de ropa web - Vue 3
 
-Esta versión refuerza la seguridad básica de la demo:
+Migración de la tienda a una base más seria con:
 
-- cookies de sesión `HttpOnly`, `Secure` en producción y `SameSite=Strict`
-- token CSRF para operaciones del panel admin
-- hashing de sesión en base de datos
-- rate limit básico en login y escritura admin
-- validación estricta de links de pago (`https` y allowlist opcional de dominios)
-- validación de correo, WhatsApp, URLs de imagen y política mínima de contraseña
-- auditoría básica de acciones administrativas
-- headers de seguridad y `vercel.json`
-- enlace de pago servido desde `/checkout/payment` para no exponer directamente la URL externa en la configuración pública
+- Frontend en Vue 3 + Vite
+- Vue Router para tienda, producto y panel admin
+- Toastify para notificaciones
+- Backend Node.js + Express
+- PostgreSQL para productos, categorías, configuración y sesiones
 
-## Variables importantes
+## Estructura
 
-Revise `.env.example` y cambie como mínimo:
+- `frontend/` aplicación Vue 3
+- `server.js` backend Express y APIs
+- `db/schema.sql` esquema de PostgreSQL
+- `lib/` seguridad y base de datos
 
-- `ADMIN_PASSWORD`
-- `PASSWORD_PEPPER`
-- `PAYMENT_ALLOWED_HOSTS`
-- `DATABASE_URL`
+## Comandos
 
-## Admin
+```bash
+npm install
+npm run build:client
+npm start
+```
 
-- URL: `/admin.html`
-- El formulario ya no trae credenciales prellenadas.
+Para desarrollo del frontend:
 
-## Nota de despliegue
+```bash
+npm run dev:client
+```
 
-El proyecto sigue siendo una app Node + PostgreSQL tradicional. Para Vercel, lo recomendable es usar variables de entorno del proyecto y desplegar el backend de forma compatible con Vercel Functions o dejar el backend/DB fuera de Vercel si solo quiere mostrar la demo visual.
+## Rutas
+
+- `/` tienda pública
+- `/producto/:slug` detalle de producto
+- `/admin/login` acceso admin
+- `/admin/panel` panel admin

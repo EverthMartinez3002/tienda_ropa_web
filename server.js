@@ -1,3 +1,4 @@
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const { Pool } = require('pg');
@@ -35,8 +36,28 @@ if (isProd) {
   }
 }
 
-const pool = new Pool({ connectionString: DATABASE_URL });
+function shouldUseSsl(connectionString) {
+  try {
+    const url = new URL(connectionString);
+    const host = String(url.hostname || '').toLowerCase();
+    const sslmode = String(url.searchParams.get('sslmode') || '').toLowerCase();
+    const localHosts = new Set(['localhost', '127.0.0.1', 'db', 'postgres']);
+
+    if (sslmode === 'disable') return false;
+    if (localHosts.has(host) || host.endsWith('.local') || host.endsWith('.internal')) return false;
+    if (sslmode === 'require' || sslmode === 'verify-ca' || sslmode === 'verify-full') return true;
+    return isProd;
+  } catch (_error) {
+    return isProd;
+  }
+}
+
+const poolConfig = { connectionString: DATABASE_URL };
+if (shouldUseSsl(DATABASE_URL)) poolConfig.ssl = { rejectUnauthorized: false };
+
+const pool = new Pool(poolConfig);
 const app = express();
+const frontendDist = path.join(__dirname, 'frontend', 'dist');
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
@@ -160,60 +181,53 @@ async function audit(adminId, action, entityType, entityId, req, details = {}) {
   try {
     await pool.query(
       `INSERT INTO admin_audit_logs (admin_id, action, entity_type, entity_id, ip_address, user_agent, details)
-       VALUES ($1, $2, $3, $4, $5, $6, $7::jsonb)`,
-      [
-        adminId || null,
-        action,
-        entityType,
-        entityId == null ? null : String(entityId),
-        getClientIp(req),
-        getUserAgent(req),
-        JSON.stringify(details || {}),
-      ]
+       VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb)`,
+      [adminId || null, action, entityType, entityId ? String(entityId) : null, getClientIp(req), getUserAgent(req), JSON.stringify(details || {})]
     );
   } catch (error) {
-    console.error('No se pudo registrar auditoría:', error.message);
+    console.error('No se pudo registrar la auditoría', error);
   }
+}
+
+async function getAdminSession(req) {
+  const cookies = parseCookies(req.headers.cookie || '');
+  const sessionToken = cookies[SESSION_COOKIE_NAME] || cookies.admin_session;
+  if (!sessionToken) return null;
+
+  const result = await pool.query(
+    `SELECT s.id, s.admin_id, s.expires_at, a.name, a.email
+       FROM admin_sessions s
+       JOIN admins a ON a.id = s.admin_id
+      WHERE s.token_hash = $1 AND s.expires_at > NOW()
+      LIMIT 1`,
+    [createTokenHash(sessionToken)]
+  );
+
+  if (!result.rows[0]) return null;
+  return {
+    sessionId: result.rows[0].id,
+    id: result.rows[0].admin_id,
+    name: result.rows[0].name,
+    email: result.rows[0].email,
+  };
 }
 
 async function requireAdmin(req, res, next) {
-  const cookies = parseCookies(req.headers.cookie || '');
-  const token = cookies[SESSION_COOKIE_NAME];
-  if (!token) return res.status(401).json({ error: 'No autorizado' });
-
-  const tokenHash = createTokenHash(token);
-  const { rows } = await pool.query(
-    `SELECT s.id AS session_id, s.admin_id, s.csrf_token_hash, a.name, a.email
-     FROM admin_sessions s
-     JOIN admins a ON a.id = s.admin_id
-     WHERE s.token_hash = $1 AND s.expires_at > NOW()`,
-    [tokenHash]
-  );
-
-  if (!rows.length) {
-    clearSessionCookies(res);
-    return res.status(401).json({ error: 'Sesión expirada' });
-  }
-
-  req.admin = { id: rows[0].admin_id, name: rows[0].name, email: rows[0].email };
-  req.adminSession = rows[0];
-  req.sessionToken = token;
-  next();
+  const admin = await getAdminSession(req);
+  if (!admin) return res.status(401).json({ error: 'Debe iniciar sesión para continuar.' });
+  req.admin = admin;
+  return next();
 }
 
-function verifyAdminCsrf(req, res, next) {
+function requireCsrf(req, res, next) {
   if (isSafeMethod(req.method)) return next();
   const cookies = parseCookies(req.headers.cookie || '');
-  const cookieToken = cookies[CSRF_COOKIE_NAME];
-  const headerToken = String(req.headers['x-csrf-token'] || '');
-  if (!cookieToken || !headerToken || cookieToken !== headerToken) {
-    return res.status(403).json({ error: 'No se pudo validar la solicitud.' });
+  const csrfCookie = cookies[CSRF_COOKIE_NAME] || cookies.admin_csrf;
+  const csrfHeader = String(req.headers['x-csrf-token'] || '');
+  if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+    return res.status(403).json({ error: 'La validación CSRF falló.' });
   }
-  const incomingHash = createTokenHash(headerToken);
-  if (incomingHash !== req.adminSession.csrf_token_hash) {
-    return res.status(403).json({ error: 'No se pudo validar la solicitud.' });
-  }
-  next();
+  return next();
 }
 
 function asyncRoute(handler) {
@@ -221,135 +235,129 @@ function asyncRoute(handler) {
 }
 
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', cspHeader());
-  res.setHeader('Referrer-Policy', req.path.startsWith('/checkout/') ? 'no-referrer' : 'strict-origin-when-cross-origin');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
   res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
-  if (isProd) {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  }
-  if (req.path === '/admin' || req.path === '/admin.html' || req.path.startsWith('/api/admin')) {
-    res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
-    res.setHeader('Cache-Control', 'no-store');
-  }
-  if (req.path.startsWith('/api/public') || req.path.startsWith('/checkout/')) {
-    res.setHeader('Cache-Control', 'no-store');
-  }
+  res.setHeader('Content-Security-Policy', cspHeader());
   next();
 });
 
-app.use(express.json({ limit: '100kb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  immutable: true,
+  maxAge: isProd ? '7d' : 0,
+  extensions: ['svg', 'png', 'jpg', 'jpeg', 'webp', 'ico'],
+}));
+
+if (fs.existsSync(frontendDist)) {
+  app.use(express.static(frontendDist, { maxAge: isProd ? '1h' : 0 }));
+}
+
+app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
 app.get('/api/public/settings', asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query('SELECT brand_name, tagline, whatsapp_number, payment_link, email, instagram, shipping_note, currency FROM store_settings WHERE id = 1');
-  res.json(sanitizeSettings(rows[0] || null));
+  const result = await pool.query('SELECT * FROM store_settings WHERE id = 1 LIMIT 1');
+  res.json(sanitizeSettings(result.rows[0] || null));
 }));
 
 app.get('/api/public/categories', asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query(`
-    SELECT c.id, c.name, c.slug, c.description,
-           COUNT(p.id)::int AS product_count
-    FROM categories c
-    LEFT JOIN products p ON p.category_id = c.id AND p.is_active = TRUE
-    WHERE c.is_active = TRUE
-    GROUP BY c.id
-    ORDER BY c.name ASC
-  `);
-  res.json(rows);
+  const result = await pool.query(
+    'SELECT id, name, slug, description, is_active FROM categories WHERE is_active = TRUE ORDER BY name ASC'
+  );
+  res.json(result.rows.map((row) => ({ ...row, is_active: Boolean(row.is_active) })));
 }));
 
 app.get('/api/public/products', asyncRoute(async (req, res) => {
-  const q = cleanPayloadString(req.query.q, 80);
-  const category = cleanPayloadString(req.query.category, 60);
-  const featured = String(req.query.featured || '');
+  const featuredOnly = String(req.query.featured || '').toLowerCase() === 'true';
   const params = [];
   let where = 'WHERE p.is_active = TRUE';
 
-  if (q) {
-    params.push(`%${q}%`);
-    where += ` AND (p.name ILIKE $${params.length} OR p.short_description ILIKE $${params.length} OR p.description ILIKE $${params.length})`;
-  }
-  if (category && category !== 'all') {
-    params.push(category);
-    where += ` AND c.slug = $${params.length}`;
-  }
-  if (featured === 'true') {
-    where += ' AND p.featured = TRUE';
-  }
+  if (featuredOnly) where += ' AND p.featured = TRUE';
 
-  const { rows } = await pool.query(
+  const result = await pool.query(
     `SELECT p.*, c.name AS category_name, c.slug AS category_slug
-     FROM products p
-     LEFT JOIN categories c ON c.id = p.category_id
-     ${where}
-     ORDER BY p.featured DESC, p.created_at DESC`,
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+      ${where}
+      ORDER BY p.featured DESC, p.created_at DESC`,
     params
   );
-  res.json(rows.map(normalizeProduct));
+
+  res.json(result.rows.map(normalizeProduct));
 }));
 
 app.get('/api/public/products/:slug', asyncRoute(async (req, res) => {
-  const slug = cleanPayloadString(req.params.slug, 140);
-  const { rows } = await pool.query(
+  const result = await pool.query(
     `SELECT p.*, c.name AS category_name, c.slug AS category_slug
-     FROM products p
-     LEFT JOIN categories c ON c.id = p.category_id
-     WHERE p.slug = $1 AND p.is_active = TRUE`,
-    [slug]
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+      WHERE p.slug = $1 AND p.is_active = TRUE
+      LIMIT 1`,
+    [req.params.slug]
   );
-  if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado' });
-  res.json(normalizeProduct(rows[0]));
+
+  if (!result.rows[0]) return res.status(404).json({ error: 'Producto no encontrado.' });
+  return res.json(normalizeProduct(result.rows[0]));
 }));
 
 app.get('/checkout/payment', asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query('SELECT payment_link FROM store_settings WHERE id = 1');
-  const validation = validatePaymentLink(rows[0]?.payment_link || '');
+  const result = await pool.query('SELECT payment_link FROM store_settings WHERE id = 1 LIMIT 1');
+  const validation = validatePaymentLink(result.rows[0]?.payment_link || '');
   if (!validation.ok || !validation.normalized) {
-    return res.status(404).send('No hay link de pago configurado.');
+    return res.status(400).send('No se ha configurado un link de pago seguro.');
   }
-  res.redirect(302, validation.normalized);
+  return res.redirect(validation.normalized);
 }));
 
-app.post('/api/admin/login', rateLimit({ windowMs: 10 * 60 * 1000, max: 8, keyPrefix: 'admin-login' }), asyncRoute(async (req, res) => {
-  const emailValidation = validateEmail(req.body.email || '');
-  const password = String(req.body.password || '');
-  if (!emailValidation.ok || !password) {
-    return res.status(400).json({ error: 'Credenciales inválidas' });
+app.post('/api/admin/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyPrefix: 'admin-login' }), asyncRoute(async (req, res) => {
+  const email = cleanPayloadString(req.body?.email || '', 180).toLowerCase();
+  const password = String(req.body?.password || '');
+
+  if (!validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
+  if (!password) return res.status(400).json({ error: 'Debe ingresar la contraseña.' });
+
+  const result = await pool.query('SELECT id, name, email, password_hash FROM admins WHERE email = $1 LIMIT 1', [email]);
+  const admin = result.rows[0];
+
+  if (!admin || !verifyPassword(password, admin.password_hash)) {
+    await audit(null, 'login_failed', 'admin', null, req, { email });
+    return res.status(401).json({ error: 'Credenciales inválidas.' });
   }
 
-  const { rows } = await pool.query('SELECT * FROM admins WHERE LOWER(email) = LOWER($1)', [emailValidation.normalized]);
-  if (!rows.length || !verifyPassword(password, rows[0].password_hash)) {
-    await audit(rows[0]?.id || null, 'login_failed', 'admin', rows[0]?.id || null, req, { email: emailValidation.normalized });
-    return res.status(401).json({ error: 'Credenciales inválidas' });
-  }
-
-  const sessionToken = createRandomToken(32);
+  const sessionToken = createRandomToken(48);
   const csrfToken = createRandomToken(24);
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000);
-  await pool.query('DELETE FROM admin_sessions WHERE admin_id = $1 OR expires_at <= NOW()', [rows[0].id]);
+
   await pool.query(
     `INSERT INTO admin_sessions (admin_id, token_hash, csrf_token_hash, ip_address, user_agent, expires_at)
      VALUES ($1, $2, $3, $4, $5, $6)`,
-    [rows[0].id, createTokenHash(sessionToken), createTokenHash(csrfToken), getClientIp(req), getUserAgent(req), expiresAt]
+    [admin.id, createTokenHash(sessionToken), createTokenHash(csrfToken), getClientIp(req), getUserAgent(req), expiresAt]
   );
+
   setSessionCookies(res, sessionToken, csrfToken);
-  await audit(rows[0].id, 'login_success', 'admin', rows[0].id, req, {});
-  res.json({ ok: true, admin: { id: rows[0].id, name: rows[0].name, email: rows[0].email } });
+  await audit(admin.id, 'login_success', 'admin', admin.id, req, {});
+  res.json({ ok: true, admin: { id: admin.id, name: admin.name, email: admin.email } });
 }));
 
-app.post('/api/admin/logout', rateLimit({ windowMs: 60 * 1000, max: 30, keyPrefix: 'admin-logout' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
-  await pool.query('DELETE FROM admin_sessions WHERE admin_id = $1', [req.admin.id]);
+app.post('/api/admin/logout', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
+  const cookies = parseCookies(req.headers.cookie || '');
+  const sessionToken = cookies[SESSION_COOKIE_NAME] || cookies.admin_session;
+  if (sessionToken) {
+    await pool.query('DELETE FROM admin_sessions WHERE token_hash = $1', [createTokenHash(sessionToken)]);
+  }
   clearSessionCookies(res);
   await audit(req.admin.id, 'logout', 'admin', req.admin.id, req, {});
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/session', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'admin-session' }), asyncRoute(requireAdmin), asyncRoute(async (req, res) => {
-  res.json({ ok: true, admin: req.admin });
+app.get('/api/admin/session', asyncRoute(async (req, res) => {
+  const admin = await getAdminSession(req);
+  if (!admin) return res.status(401).json({ error: 'No hay sesión activa.' });
+  res.json({ admin: { id: admin.id, name: admin.name, email: admin.email } });
 }));
 
 app.get('/api/admin/dashboard', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'admin-dashboard' }), asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
@@ -358,6 +366,7 @@ app.get('/api/admin/dashboard', rateLimit({ windowMs: 60 * 1000, max: 120, keyPr
     pool.query('SELECT COUNT(*)::int AS count FROM categories WHERE is_active = TRUE'),
     pool.query('SELECT COUNT(*)::int AS count FROM products WHERE is_active = TRUE AND featured = TRUE'),
   ]);
+
   res.json({
     total_products: products.rows[0].count,
     total_categories: categories.rows[0].count,
@@ -365,188 +374,204 @@ app.get('/api/admin/dashboard', rateLimit({ windowMs: 60 * 1000, max: 120, keyPr
   });
 }));
 
-app.get('/api/admin/categories', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'admin-categories-read' }), asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query('SELECT * FROM categories ORDER BY created_at DESC');
-  res.json(rows);
+app.get('/api/admin/categories', asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
+  const result = await pool.query('SELECT id, name, slug, description, is_active FROM categories ORDER BY created_at DESC');
+  res.json(result.rows.map((row) => ({ ...row, is_active: Boolean(row.is_active) })));
 }));
 
-app.post('/api/admin/categories', rateLimit({ windowMs: 10 * 60 * 1000, max: 60, keyPrefix: 'admin-categories-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
-  const name = cleanPayloadString(req.body.name, 120);
-  const description = cleanPayloadString(req.body.description, 600);
-  const slug = slugify(req.body.slug || name);
-  if (!name) return res.status(400).json({ error: 'El nombre es obligatorio' });
+app.post('/api/admin/categories', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
+  const name = cleanPayloadString(req.body?.name || '', 120);
+  const slug = slugify(req.body?.slug || name);
+  const description = cleanPayloadString(req.body?.description || '', 400);
+  const isActive = Boolean(req.body?.is_active ?? true);
 
-  const { rows } = await pool.query(
-    'INSERT INTO categories (name, slug, description) VALUES ($1, $2, $3) RETURNING *',
-    [name, slug, description]
+  if (!name) return res.status(400).json({ error: 'Debe ingresar el nombre de la categoría.' });
+  if (!slug) return res.status(400).json({ error: 'No se pudo generar un slug válido.' });
+
+  const result = await pool.query(
+    'INSERT INTO categories (name, slug, description, is_active, updated_at) VALUES ($1,$2,$3,$4,NOW()) RETURNING id',
+    [name, slug, description, isActive]
   );
-  await audit(req.admin.id, 'category_create', 'category', rows[0].id, req, { name: rows[0].name, slug: rows[0].slug });
-  res.status(201).json(rows[0]);
+
+  await audit(req.admin.id, 'category_create', 'category', result.rows[0].id, req, { name, slug });
+  res.status(201).json({ ok: true, id: result.rows[0].id });
 }));
 
-app.put('/api/admin/categories/:id', rateLimit({ windowMs: 10 * 60 * 1000, max: 60, keyPrefix: 'admin-categories-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
+app.put('/api/admin/categories/:id', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
   const id = Number(req.params.id);
-  const name = cleanPayloadString(req.body.name, 120);
-  const description = cleanPayloadString(req.body.description, 600);
-  const slug = slugify(req.body.slug || name);
-  const isActive = req.body.is_active !== false;
-  if (!name) return res.status(400).json({ error: 'El nombre es obligatorio' });
+  const name = cleanPayloadString(req.body?.name || '', 120);
+  const slug = slugify(req.body?.slug || name);
+  const description = cleanPayloadString(req.body?.description || '', 400);
+  const isActive = Boolean(req.body?.is_active ?? true);
 
-  const { rows } = await pool.query(
-    `UPDATE categories
-     SET name = $1, slug = $2, description = $3, is_active = $4, updated_at = NOW()
-     WHERE id = $5
-     RETURNING *`,
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
+  if (!name) return res.status(400).json({ error: 'Debe ingresar el nombre de la categoría.' });
+  if (!slug) return res.status(400).json({ error: 'No se pudo generar un slug válido.' });
+
+  await pool.query(
+    'UPDATE categories SET name=$1, slug=$2, description=$3, is_active=$4, updated_at=NOW() WHERE id=$5',
     [name, slug, description, isActive, id]
   );
-  if (!rows.length) return res.status(404).json({ error: 'Categoría no encontrada' });
-  await audit(req.admin.id, 'category_update', 'category', id, req, { name, slug, isActive });
-  res.json(rows[0]);
+
+  await audit(req.admin.id, 'category_update', 'category', id, req, { name, slug });
+  res.json({ ok: true });
 }));
 
-app.delete('/api/admin/categories/:id', rateLimit({ windowMs: 10 * 60 * 1000, max: 60, keyPrefix: 'admin-categories-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
+app.delete('/api/admin/categories/:id', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
   const id = Number(req.params.id);
-  await pool.query('UPDATE products SET category_id = NULL, updated_at = NOW() WHERE category_id = $1', [id]);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
+
   await pool.query('DELETE FROM categories WHERE id = $1', [id]);
   await audit(req.admin.id, 'category_delete', 'category', id, req, {});
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/products', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'admin-products-read' }), asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query(
-    `SELECT p.*, c.name AS category_name, c.slug AS category_slug
-     FROM products p
-     LEFT JOIN categories c ON c.id = p.category_id
-     ORDER BY p.created_at DESC`
-  );
-  res.json(rows.map(normalizeProduct));
-}));
+function normalizeProductPayload(body) {
+  const name = cleanPayloadString(body?.name || '', 180);
+  const slug = slugify(body?.slug || name);
+  const categoryIdRaw = body?.category_id;
+  const categoryId = categoryIdRaw === '' || categoryIdRaw == null ? null : Number(categoryIdRaw);
+  const price = Number(body?.price || 0);
+  const compare = body?.compare_at_price === '' || body?.compare_at_price == null ? null : Number(body.compare_at_price);
+  const shortDescription = cleanPayloadString(body?.short_description || '', 220);
+  const description = cleanPayloadString(body?.description || '', 2000);
+  const imageValidation = validateImageUrl(body?.image_url || '');
+  const tag = cleanPayloadString(body?.tag || '', 80);
+  const sizes = String(body?.sizes || 'S,M,L')
+    .split(',')
+    .map((value) => value.trim().toUpperCase())
+    .filter(Boolean)
+    .join(',');
+  const featured = Boolean(body?.featured);
+  const isActive = Boolean(body?.is_active ?? true);
 
-function validateProductPayload(body) {
-  const name = cleanPayloadString(body.name, 120);
-  if (!name) return { ok: false, reason: 'El nombre es obligatorio.' };
-
-  const imageValidation = validateImageUrl(cleanPayloadString(body.image_url, 300));
-  if (!imageValidation.ok) return { ok: false, reason: imageValidation.reason };
-
-  const categoryId = body.category_id ? Number(body.category_id) : null;
-  const price = Number(body.price || 0);
-  const compareAtPrice = body.compare_at_price ? Number(body.compare_at_price) : null;
-  if (!Number.isFinite(price) || price < 0) return { ok: false, reason: 'El precio no es válido.' };
-  if (compareAtPrice != null && (!Number.isFinite(compareAtPrice) || compareAtPrice < 0)) {
-    return { ok: false, reason: 'El precio anterior no es válido.' };
-  }
-
-  const sizes = Array.isArray(body.sizes)
-    ? body.sizes.map((value) => cleanPayloadString(value, 20)).filter(Boolean).join(',')
-    : cleanPayloadString(body.sizes, 120).split(',').map((value) => value.trim()).filter(Boolean).join(',');
+  if (!name) return { ok: false, error: 'Debe ingresar el nombre del producto.' };
+  if (!slug) return { ok: false, error: 'No se pudo generar un slug válido.' };
+  if (categoryId != null && (!Number.isInteger(categoryId) || categoryId <= 0)) return { ok: false, error: 'Categoría inválida.' };
+  if (!Number.isFinite(price) || price < 0) return { ok: false, error: 'El precio es inválido.' };
+  if (compare != null && (!Number.isFinite(compare) || compare < 0)) return { ok: false, error: 'El precio anterior es inválido.' };
+  if (!imageValidation.ok) return { ok: false, error: imageValidation.reason || 'La imagen es inválida.' };
+  if (!sizes) return { ok: false, error: 'Debe indicar al menos una talla.' };
 
   return {
     ok: true,
     value: {
       name,
-      slug: slugify(body.slug || name),
-      category_id: categoryId,
+      slug,
+      categoryId,
       price,
-      compare_at_price: compareAtPrice,
-      short_description: cleanPayloadString(body.short_description, 240),
-      description: cleanPayloadString(body.description, 4000),
-      image_url: imageValidation.normalized || '',
-      tag: cleanPayloadString(body.tag, 40),
-      sizes: sizes || 'S,M,L',
-      featured: body.featured === true,
-      is_active: body.is_active !== false,
+      compare,
+      shortDescription,
+      description,
+      imageUrl: imageValidation.normalized,
+      tag,
+      sizes,
+      featured,
+      isActive,
     },
   };
 }
 
-app.post('/api/admin/products', rateLimit({ windowMs: 10 * 60 * 1000, max: 80, keyPrefix: 'admin-products-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
-  const payload = validateProductPayload(req.body);
-  if (!payload.ok) return res.status(400).json({ error: payload.reason });
+app.get('/api/admin/products', asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
+  const result = await pool.query(
+    `SELECT p.*, c.name AS category_name, c.slug AS category_slug
+       FROM products p
+       LEFT JOIN categories c ON c.id = p.category_id
+      ORDER BY p.created_at DESC`
+  );
+  res.json(result.rows.map(normalizeProduct));
+}));
 
-  const p = payload.value;
-  const { rows } = await pool.query(
+app.post('/api/admin/products', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
+  const payload = normalizeProductPayload(req.body);
+  if (!payload.ok) return res.status(400).json({ error: payload.error });
+  const value = payload.value;
+
+  const result = await pool.query(
     `INSERT INTO products
-      (name, slug, category_id, price, compare_at_price, short_description, description, image_url, tag, sizes, featured, is_active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
-     RETURNING *`,
-    [p.name, p.slug, p.category_id, p.price, p.compare_at_price, p.short_description, p.description, p.image_url, p.tag, p.sizes, p.featured, p.is_active]
+      (name, slug, category_id, price, compare_at_price, short_description, description, image_url, tag, sizes, featured, is_active, updated_at)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
+     RETURNING id`,
+    [value.name, value.slug, value.categoryId, value.price, value.compare, value.shortDescription, value.description, value.imageUrl, value.tag, value.sizes, value.featured, value.isActive]
   );
-  await audit(req.admin.id, 'product_create', 'product', rows[0].id, req, { name: p.name, slug: p.slug });
-  res.status(201).json(normalizeProduct(rows[0]));
+
+  await audit(req.admin.id, 'product_create', 'product', result.rows[0].id, req, { name: value.name, slug: value.slug });
+  res.status(201).json({ ok: true, id: result.rows[0].id });
 }));
 
-app.put('/api/admin/products/:id', rateLimit({ windowMs: 10 * 60 * 1000, max: 80, keyPrefix: 'admin-products-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
+app.put('/api/admin/products/:id', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
   const id = Number(req.params.id);
-  const payload = validateProductPayload(req.body);
-  if (!payload.ok) return res.status(400).json({ error: payload.reason });
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
 
-  const p = payload.value;
-  const { rows } = await pool.query(
+  const payload = normalizeProductPayload(req.body);
+  if (!payload.ok) return res.status(400).json({ error: payload.error });
+  const value = payload.value;
+
+  await pool.query(
     `UPDATE products
-     SET name = $1, slug = $2, category_id = $3, price = $4, compare_at_price = $5,
-         short_description = $6, description = $7, image_url = $8, tag = $9, sizes = $10,
-         featured = $11, is_active = $12, updated_at = NOW()
-     WHERE id = $13
-     RETURNING *`,
-    [p.name, p.slug, p.category_id, p.price, p.compare_at_price, p.short_description, p.description, p.image_url, p.tag, p.sizes, p.featured, p.is_active, id]
+        SET name=$1, slug=$2, category_id=$3, price=$4, compare_at_price=$5, short_description=$6, description=$7, image_url=$8, tag=$9, sizes=$10, featured=$11, is_active=$12, updated_at=NOW()
+      WHERE id=$13`,
+    [value.name, value.slug, value.categoryId, value.price, value.compare, value.shortDescription, value.description, value.imageUrl, value.tag, value.sizes, value.featured, value.isActive, id]
   );
-  if (!rows.length) return res.status(404).json({ error: 'Producto no encontrado' });
-  await audit(req.admin.id, 'product_update', 'product', id, req, { name: p.name, slug: p.slug, is_active: p.is_active });
-  res.json(normalizeProduct(rows[0]));
+
+  await audit(req.admin.id, 'product_update', 'product', id, req, { name: value.name, slug: value.slug });
+  res.json({ ok: true });
 }));
 
-app.delete('/api/admin/products/:id', rateLimit({ windowMs: 10 * 60 * 1000, max: 80, keyPrefix: 'admin-products-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
+app.delete('/api/admin/products/:id', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
   const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
+
   await pool.query('DELETE FROM products WHERE id = $1', [id]);
   await audit(req.admin.id, 'product_delete', 'product', id, req, {});
   res.json({ ok: true });
 }));
 
-app.get('/api/admin/settings', rateLimit({ windowMs: 60 * 1000, max: 120, keyPrefix: 'admin-settings-read' }), asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
-  const { rows } = await pool.query('SELECT * FROM store_settings WHERE id = 1');
-  res.json(rows[0] || null);
+app.get('/api/admin/settings', asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
+  const result = await pool.query('SELECT * FROM store_settings WHERE id = 1 LIMIT 1');
+  res.json(result.rows[0] || null);
 }));
 
-app.put('/api/admin/settings', rateLimit({ windowMs: 10 * 60 * 1000, max: 40, keyPrefix: 'admin-settings-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
-  const brand_name = cleanPayloadString(req.body.brand_name, 120);
-  const tagline = cleanPayloadString(req.body.tagline, 220);
-  const whatsapp = validateWhatsAppNumber(req.body.whatsapp_number || '');
-  const payment = validatePaymentLink(cleanPayloadString(req.body.payment_link, 500));
-  const email = validateEmail(req.body.email || '');
-  const instagram = cleanPayloadString(req.body.instagram, 80).replace(/\s+/g, '');
-  const shipping_note = cleanPayloadString(req.body.shipping_note, 240);
-  const currency = cleanPayloadString(req.body.currency || 'USD', 10).toUpperCase() || 'USD';
+app.put('/api/admin/settings', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
+  const brandName = cleanPayloadString(req.body?.brand_name || '', 120);
+  const tagline = cleanPayloadString(req.body?.tagline || '', 240);
+  const whatsappNumber = validateWhatsAppNumber(req.body?.whatsapp_number || '');
+  const email = cleanPayloadString(req.body?.email || '', 180).toLowerCase();
+  const instagram = cleanPayloadString(req.body?.instagram || '', 80);
+  const shippingNote = cleanPayloadString(req.body?.shipping_note || '', 500);
+  const currency = cleanPayloadString(req.body?.currency || 'USD', 12).toUpperCase();
+  const paymentValidation = validatePaymentLink(req.body?.payment_link || '');
 
-  if (!brand_name) return res.status(400).json({ error: 'El nombre de marca es obligatorio.' });
-  if (!tagline) return res.status(400).json({ error: 'El tagline es obligatorio.' });
-  if (!whatsapp.ok) return res.status(400).json({ error: whatsapp.reason });
-  if (!payment.ok) return res.status(400).json({ error: payment.reason });
-  if (!email.ok) return res.status(400).json({ error: email.reason });
+  if (!brandName) return res.status(400).json({ error: 'Debe ingresar el nombre de la marca.' });
+  if (!tagline) return res.status(400).json({ error: 'Debe ingresar el tagline.' });
+  if (!whatsappNumber.ok) return res.status(400).json({ error: whatsappNumber.reason || 'WhatsApp inválido.' });
+  if (!validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
+  if (!paymentValidation.ok) return res.status(400).json({ error: paymentValidation.reason || 'Link de pago inválido.' });
 
-  const { rows } = await pool.query(
+  await pool.query(
     `UPDATE store_settings
-     SET brand_name = $1, tagline = $2, whatsapp_number = $3, payment_link = $4,
-         email = $5, instagram = $6, shipping_note = $7, currency = $8, updated_at = NOW()
-     WHERE id = 1 RETURNING *`,
-    [brand_name, tagline, whatsapp.normalized, payment.normalized || '', email.normalized, instagram, shipping_note, currency]
+        SET brand_name=$1, tagline=$2, whatsapp_number=$3, payment_link=$4, email=$5, instagram=$6, shipping_note=$7, currency=$8, updated_at=NOW()
+      WHERE id = 1`,
+    [brandName, tagline, whatsappNumber.normalized, paymentValidation.normalized, email, instagram, shippingNote, currency]
   );
-  await audit(req.admin.id, 'settings_update', 'store_settings', 1, req, { brand_name, currency });
-  res.json(rows[0]);
+
+  await audit(req.admin.id, 'settings_update', 'settings', 1, req, { brandName, email, instagram });
+  res.json({ ok: true });
 }));
 
-app.put('/api/admin/change-password', rateLimit({ windowMs: 10 * 60 * 1000, max: 20, keyPrefix: 'admin-password-write' }), asyncRoute(requireAdmin), verifyAdminCsrf, asyncRoute(async (req, res) => {
-  const currentPassword = String(req.body.current_password || '');
-  const newPassword = String(req.body.new_password || '');
-  const strongPassword = validateStrongPassword(newPassword);
-  if (!currentPassword || !strongPassword.ok) {
-    return res.status(400).json({ error: strongPassword.reason || 'Revise los datos de contraseña.' });
-  }
+app.put('/api/admin/change-password', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
+  const currentPassword = String(req.body?.current_password || '');
+  const newPassword = String(req.body?.new_password || '');
 
-  const { rows } = await pool.query('SELECT * FROM admins WHERE id = $1', [req.admin.id]);
-  if (!rows.length || !verifyPassword(currentPassword, rows[0].password_hash)) {
-    await audit(req.admin.id, 'password_change_failed', 'admin', req.admin.id, req, {});
-    return res.status(400).json({ error: 'La contraseña actual no es válida.' });
+  if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Debe completar ambos campos.' });
+  const strong = validateStrongPassword(newPassword);
+  if (!strong.ok) return res.status(400).json({ error: strong.reason });
+
+  const adminResult = await pool.query('SELECT id, password_hash FROM admins WHERE id = $1 LIMIT 1', [req.admin.id]);
+  const admin = adminResult.rows[0];
+  if (!admin || !verifyPassword(currentPassword, admin.password_hash)) {
+    await audit(req.admin.id, 'password_change_failed', 'admin', req.admin.id, req, { reason: 'invalid_current_password' });
+    return res.status(400).json({ error: 'La contraseña actual es incorrecta.' });
   }
 
   await pool.query('UPDATE admins SET password_hash = $1 WHERE id = $2', [createPasswordHash(newPassword), req.admin.id]);
@@ -557,7 +582,17 @@ app.put('/api/admin/change-password', rateLimit({ windowMs: 10 * 60 * 1000, max:
 }));
 
 app.get('/admin', (_req, res) => {
-  res.redirect('/admin.html');
+  res.redirect('/admin/login');
+});
+
+app.get('/admin.html', (_req, res) => {
+  res.redirect('/admin/login');
+});
+
+app.get(/^\/(?!api\/|checkout\/).*/, (_req, res, next) => {
+  const indexFile = path.join(frontendDist, 'index.html');
+  if (!fs.existsSync(indexFile)) return next();
+  res.sendFile(indexFile);
 });
 
 app.use((err, _req, res, _next) => {
@@ -567,7 +602,11 @@ app.use((err, _req, res, _next) => {
 
 (async () => {
   await initDb(pool);
-  app.listen(PORT, () => {
-    console.log(`Servidor listo en http://localhost:${PORT}`);
-  });
+  if (require.main === module) {
+    app.listen(PORT, () => {
+      console.log(`Servidor listo en http://localhost:${PORT}`);
+    });
+  }
 })();
+
+module.exports = app;

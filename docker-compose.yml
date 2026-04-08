@@ -24,7 +24,7 @@ services:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_123!}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:-change-this-extra-secret}
       PAYMENT_ALLOWED_HOSTS: ${PAYMENT_ALLOWED_HOSTS:-checkout.stripe.com,paypal.com,www.paypal.com}
-      BRAND_NAME: ${BRAND_NAME:-Velá Studio}
+      BRAND_NAME: ${BRAND_NAME:-Magbe Boutique}
     ports:
       - "3000:3000"
 
