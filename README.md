@@ -35,3 +35,10 @@ npm run dev:client
 - `/producto/:slug` detalle de producto
 - `/admin/login` acceso admin
 - `/admin/panel` panel admin
+
+
+## Imágenes de productos
+
+- El panel permite pegar una URL HTTPS o subir una imagen PNG, JPG o WEBP.
+- Las imágenes subidas se guardan dentro del propio producto para que la demo siga funcionando también en despliegues efímeros.
+- El tamaño máximo se controla con `MAX_PRODUCT_IMAGE_BYTES` (por defecto 2097152, equivalente a 2 MB).

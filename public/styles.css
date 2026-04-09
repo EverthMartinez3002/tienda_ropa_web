@@ -588,3 +588,47 @@ body[data-page='product'] .site-header {
   .product-actions, .detail-actions, .inline-actions, .admin-item-card, .product-card-admin { grid-template-columns: 1fr; }
   .bag-btn { padding-inline: .95rem; }
 }
+
+
+.product-image-upload {
+  display: grid;
+  gap: .7rem;
+}
+
+.upload-field {
+  display: grid;
+  gap: .45rem;
+}
+
+.upload-field input[type='file'] {
+  padding: .8rem .9rem;
+  border: 1px dashed var(--line-strong, var(--line));
+  border-radius: 16px;
+  background: rgba(255,255,255,0.72);
+}
+
+.form-hint {
+  margin: 0;
+  color: var(--muted, #5f6268);
+  font-size: .92rem;
+  line-height: 1.45;
+}
+
+.product-image-preview-card {
+  display: grid;
+  gap: .85rem;
+  padding: .9rem;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.72);
+}
+
+.product-image-preview {
+  width: 100%;
+  max-width: 240px;
+  aspect-ratio: 1 / 1.1;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(240,232,226,0.85));
+}

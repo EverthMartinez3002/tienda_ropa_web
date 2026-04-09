@@ -107,7 +107,17 @@
                 </div>
                 <label><span>Tag</span><input name="tag" maxlength="40" placeholder="Nuevo, Premium, Top venta..." /></label>
                 <label><span>Tallas</span><input name="sizes" maxlength="120" placeholder="S,M,L" /></label>
-                <label><span>Imagen (ruta segura)</span><input name="image_url" maxlength="300" placeholder="/assets/products/camisa-nube.svg" /></label>
+                <input type="hidden" name="image_url" />
+                <label><span>Imagen (URL o subida)</span><input id="productImageUrlInput" maxlength="300" placeholder="/assets/products/camisa-nube.svg o https://..." /></label>
+                <div class="product-image-upload">
+                  <label class="upload-field"><span>Subir imagen</span><input id="productImageFile" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+                  <p class="form-message form-hint">Formatos permitidos: PNG, JPG o WEBP. Tamaño máximo: 2 MB.</p>
+                  <p id="productImageModeHint" class="form-message form-hint" hidden>Hay una imagen subida cargada para este producto.</p>
+                  <div id="productImagePreviewCard" class="product-image-preview-card" hidden>
+                    <img id="productImagePreview" class="product-image-preview" alt="Vista previa del producto" />
+                    <button class="btn btn-secondary" type="button" id="clearProductImageButton">Quitar imagen</button>
+                  </div>
+                </div>
                 <label><span>Descripción corta</span><textarea name="short_description" rows="2" maxlength="240"></textarea></label>
                 <label><span>Descripción</span><textarea name="description" rows="5" maxlength="4000"></textarea></label>
                 <label class="check-row"><input type="checkbox" name="featured" /> Destacado</label>

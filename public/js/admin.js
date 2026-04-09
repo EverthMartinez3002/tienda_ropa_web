@@ -46,11 +46,21 @@ const el = {
   productMessage: document.getElementById('productMessage'),
   productsList: document.getElementById('productsList'),
   productCategorySelect: document.getElementById('productCategorySelect'),
+  productImageFile: document.getElementById('productImageFile'),
+  productImageUrlInput: document.getElementById('productImageUrlInput'),
+  productImageModeHint: document.getElementById('productImageModeHint'),
+  productImagePreviewCard: document.getElementById('productImagePreviewCard'),
+  productImagePreview: document.getElementById('productImagePreview'),
+  clearProductImageButton: document.getElementById('clearProductImageButton'),
   settingsForm: document.getElementById('settingsForm'),
   settingsMessage: document.getElementById('settingsMessage'),
   passwordForm: document.getElementById('passwordForm'),
   passwordMessage: document.getElementById('passwordMessage'),
 };
+
+
+const PRODUCT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
+const PRODUCT_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
 
 function showMessage(node, message, ok = false) {
   node.textContent = message;
@@ -144,6 +154,61 @@ function renderProducts() {
   });
 }
 
+
+function renderProductImagePreview(imageUrl = '') {
+  const value = String(imageUrl || '').trim();
+  const uploaded = value.startsWith('data:image/');
+  el.productImageModeHint.hidden = !uploaded;
+  if (!value) {
+    el.productImagePreviewCard.hidden = true;
+    el.productImagePreview.removeAttribute('src');
+    return;
+  }
+  el.productImagePreview.src = value;
+  el.productImagePreviewCard.hidden = false;
+}
+
+function syncProductImageUrlInput(imageUrl = '') {
+  const value = String(imageUrl || '').trim();
+  el.productImageUrlInput.value = value.startsWith('data:image/') ? '' : value;
+  field(el.productForm, 'image_url').value = value;
+  renderProductImagePreview(value);
+}
+
+function clearProductImageSelection() {
+  syncProductImageUrlInput('');
+  if (el.productImageFile) el.productImageFile.value = '';
+}
+
+function handleProductImageFile(event) {
+  const file = event.target?.files?.[0];
+  if (!file) return;
+
+  if (!PRODUCT_IMAGE_TYPES.has(file.type)) {
+    window.ui.toast('La imagen debe ser PNG, JPG o WEBP.', { variant: 'error', title: 'Imagen inválida' });
+    event.target.value = '';
+    return;
+  }
+
+  if (file.size > PRODUCT_IMAGE_MAX_BYTES) {
+    window.ui.toast('La imagen supera el máximo permitido de 2 MB.', { variant: 'error', title: 'Imagen inválida' });
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    const result = String(reader.result || '');
+    syncProductImageUrlInput(result);
+    window.ui.toast('Imagen cargada correctamente. Recuerde guardar el producto.', { variant: 'success', title: 'Imagen lista' });
+  };
+  reader.onerror = () => {
+    window.ui.toast('No se pudo leer la imagen seleccionada.', { variant: 'error', title: 'Imagen inválida' });
+    event.target.value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
 function fillCategoryForm(id) {
   const category = state.categories.find((item) => item.id === id);
   if (!category) return;
@@ -186,7 +251,7 @@ function fillProductForm(id) {
   field(el.productForm, 'compare_at_price').value = product.compare_at_price || '';
   field(el.productForm, 'tag').value = product.tag || '';
   field(el.productForm, 'sizes').value = product.sizes.join(',');
-  field(el.productForm, 'image_url').value = product.image_url || '';
+  syncProductImageUrlInput(product.image_url || '');
   field(el.productForm, 'short_description').value = product.short_description || '';
   field(el.productForm, 'description').value = product.description || '';
   field(el.productForm, 'featured').checked = product.featured;
@@ -197,6 +262,7 @@ function resetProductForm() {
   el.productForm.reset();
   field(el.productForm, 'id').value = '';
   field(el.productForm, 'is_active').checked = true;
+  clearProductImageSelection();
   showMessage(el.productMessage, '');
 }
 
@@ -315,6 +381,11 @@ el.productForm.addEventListener('submit', async (event) => {
 });
 
 el.resetProductForm.addEventListener('click', resetProductForm);
+el.productImageFile?.addEventListener('change', handleProductImageFile);
+el.clearProductImageButton?.addEventListener('click', clearProductImageSelection);
+el.productImageUrlInput?.addEventListener('input', (event) => {
+  syncProductImageUrlInput(event.target.value);
+});
 
 el.settingsForm.addEventListener('submit', async (event) => {
   event.preventDefault();
