@@ -163,6 +163,8 @@ async function loadProduct() {
   state.settings = settings;
   state.product = product;
 
+  window.api.applyBrandName(settings.brand_name);
+
   document.title = `${product.name} | ${settings.brand_name}`;
   elements.productImage.src = product.image_url;
   elements.productImage.alt = product.name;

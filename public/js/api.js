@@ -18,6 +18,19 @@ function openExternal(url) {
   if (win) win.opener = null;
 }
 
+function applyBrandName(brandName) {
+  const name = String(brandName || '').trim();
+  if (!name) return;
+
+  document.querySelectorAll('[data-brand-name]').forEach((node) => {
+    node.textContent = name;
+  });
+
+  document.querySelectorAll('[data-brand-logo-alt]').forEach((node) => {
+    node.setAttribute('alt', name);
+  });
+}
+
 async function request(url, options = {}) {
   const method = String(options.method || 'GET').toUpperCase();
   const headers = {
@@ -59,6 +72,7 @@ window.api = {
   getCookie,
   escapeHtml,
   openExternal,
+  applyBrandName,
   request,
 };
 

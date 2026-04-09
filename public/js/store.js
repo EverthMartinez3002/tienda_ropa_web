@@ -290,6 +290,8 @@ async function loadData() {
   state.products = products;
   state.featured = featured;
 
+  window.api.applyBrandName(settings.brand_name);
+
   document.title = `${settings.brand_name} | Tienda de ropa`;
   elements.brandName.textContent = settings.brand_name;
   elements.brandTagline.textContent = settings.tagline;

@@ -20,7 +20,7 @@ services:
       PORT: ${PORT:-3000}
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/tienda_ropa}
       SESSION_HOURS: ${SESSION_HOURS:-12}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@velastudio.com}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@magbe.com}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_123!}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:-change-this-extra-secret}
       PAYMENT_ALLOWED_HOSTS: ${PAYMENT_ALLOWED_HOSTS:-checkout.stripe.com,paypal.com,www.paypal.com}

@@ -16,8 +16,8 @@
       </div>
       <div class="footer-links-col">
         <span class="footer-title">Contacto</span>
-        <span>{{ store.settings.value?.email || 'hola@velastudio.com' }}</span>
-        <span>{{ store.settings.value?.instagram || '@velastudio' }}</span>
+        <span>{{ store.settings.value?.email || 'hola@su-tienda.com' }}</span>
+        <span>{{ store.settings.value?.instagram || '@su_tienda' }}</span>
         <span>{{ store.settings.value?.shipping_note || 'Envíos coordinados a nivel nacional.' }}</span>
       </div>
     </div>

@@ -3,7 +3,7 @@
     <section class="hero-section container" id="nuevo">
       <div class="hero-copy">
         <p class="overline">Nueva colección</p>
-        <h1>{{ store.settings.value?.brand_name || 'Velá Studio' }}</h1>
+        <h1>{{ brandName }}</h1>
         <p class="hero-text">
           {{ store.settings.value?.tagline || 'Moda femenina con una experiencia boutique, limpia y pensada para vender por WhatsApp o link de pago.' }}
         </p>
@@ -123,29 +123,31 @@
     <section class="container about-grid section-block" id="marca">
       <article class="about-card large-card">
         <p class="overline">Marca</p>
-        <h2>{{ store.settings.value?.brand_name || 'Velá Studio' }}</h2>
+        <h2>{{ brandName }}</h2>
         <p>{{ store.settings.value?.shipping_note || 'Envíos y coordinación personalizada para que la experiencia de compra se sienta cercana y simple.' }}</p>
       </article>
       <article class="about-card">
         <p class="overline">Instagram</p>
-        <p>{{ store.settings.value?.instagram || '@velastudio' }}</p>
+        <p>{{ store.settings.value?.instagram || '@su_tienda' }}</p>
       </article>
       <article class="about-card" id="contacto">
         <p class="overline">Contacto</p>
-        <p>{{ store.settings.value?.email || 'hola@velastudio.com' }}</p>
+        <p>{{ store.settings.value?.email || 'hola@su-tienda.com' }}</p>
       </article>
     </section>
   </main>
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import ProductCard from '@/components/ProductCard.vue';
 import { useCart } from '@/composables/useCart';
 import { useStorefront } from '@/composables/useStorefront';
 
 const store = useStorefront();
 const cart = useCart();
+const brandName = computed(() => store.settings.value?.brand_name?.trim() || 'Su marca');
+
 
 function scrollToCatalog() {
   document.querySelector('#catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

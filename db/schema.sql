@@ -59,12 +59,12 @@ CREATE TABLE IF NOT EXISTS products (
 
 CREATE TABLE IF NOT EXISTS store_settings (
   id INTEGER PRIMARY KEY CHECK (id = 1),
-  brand_name TEXT NOT NULL DEFAULT 'Velá Studio',
+  brand_name TEXT NOT NULL DEFAULT 'Su marca',
   tagline TEXT NOT NULL DEFAULT 'Piezas pensadas para vestir bonito todos los días.',
   whatsapp_number TEXT NOT NULL DEFAULT '50370000000',
   payment_link TEXT NOT NULL DEFAULT 'https://example.com/pago',
-  email TEXT NOT NULL DEFAULT 'hola@velastudio.com',
-  instagram TEXT NOT NULL DEFAULT '@velastudio',
+  email TEXT NOT NULL DEFAULT 'hola@su-tienda.com',
+  instagram TEXT NOT NULL DEFAULT '@su_tienda',
   shipping_note TEXT NOT NULL DEFAULT 'Envíos en 24 a 48 horas hábiles a nivel nacional.',
   currency TEXT NOT NULL DEFAULT 'USD',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

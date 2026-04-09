@@ -7,6 +7,18 @@ const state = {
   settings: null,
 };
 
+async function hydrateBrandName() {
+  try {
+    const settings = await window.api.request('/api/public/settings');
+    const brandName = String(settings?.brand_name || '').trim();
+    if (!brandName) return;
+    window.api.applyBrandName(brandName);
+    document.title = `Admin | ${brandName}`;
+  } catch (_error) {
+    // If the public settings endpoint is not available, keep the fallback text.
+  }
+}
+
 function field(form, name) {
   return form.elements.namedItem(name);
 }
@@ -332,3 +344,5 @@ bootAdmin().catch(() => {
   el.loginScreen.hidden = false;
   el.adminApp.hidden = true;
 });
+
+hydrateBrandName();

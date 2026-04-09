@@ -34,7 +34,7 @@ export function useStorefront() {
 
     state.settings = settings;
     if (typeof document !== 'undefined') {
-      const titleBrand = settings?.brand_name || 'Boutique online';
+      const titleBrand = settings?.brand_name?.trim() || 'Su marca';
       document.title = `${titleBrand} · Boutique online`;
     }
     state.categories = categories;
@@ -44,7 +44,12 @@ export function useStorefront() {
   }
 
   async function loadProduct(slug) {
-    return request(`/api/public/products/${encodeURIComponent(slug)}`);
+    const product = await request(`/api/public/products/${encodeURIComponent(slug)}`);
+    if (typeof document !== 'undefined') {
+      const titleBrand = state.settings?.brand_name?.trim() || 'Su marca';
+      document.title = product?.name ? `${product.name} · ${titleBrand}` : `${titleBrand} · Boutique online`;
+    }
+    return product;
   }
 
   return {
