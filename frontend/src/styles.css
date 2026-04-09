@@ -534,6 +534,49 @@ select:focus {
   font-size: 0.78rem;
 }
 .footer-links-col a:hover { color: var(--accent); }
+.footer-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+.footer-contact-icon {
+  width: 2rem;
+  height: 2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.88);
+  border: 1px solid rgba(143, 129, 120, 0.16);
+  color: var(--text);
+  flex-shrink: 0;
+}
+.footer-contact-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+.inline-link {
+  color: var(--primary);
+  font-weight: 700;
+}
+.inline-link:hover { color: var(--accent); }
+.field-note {
+  display: block;
+  margin-top: -0.5rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+.env-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  background: rgba(31,45,56,0.08);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
 
 .drawer-overlay {
   position: fixed;

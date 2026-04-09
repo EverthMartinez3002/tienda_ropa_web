@@ -117,11 +117,18 @@
 
       <div v-if="currentSection === 'settings'" class="admin-card form-grid max-width-card">
         <h3>Configuración general</h3>
+        <p class="muted-copy">Los canales públicos del footer, el correo de contacto y el número de WhatsApp pueden definirse desde variables de entorno. Si existen, tienen prioridad sobre lo guardado en base de datos.</p>
+        <div class="env-pill">WHATSAPP_NUMBER · CONTACT_EMAIL · INSTAGRAM_URL · FACEBOOK_URL</div>
         <label><span>Nombre de marca</span><input v-model="settings.brand_name" /></label>
         <label><span>Tagline</span><input v-model="settings.tagline" /></label>
-        <label><span>WhatsApp</span><input v-model="settings.whatsapp_number" /></label>
-        <label><span>Email</span><input v-model="settings.email" /></label>
-        <label><span>Instagram</span><input v-model="settings.instagram" /></label>
+        <label><span>WhatsApp</span><input v-model="settings.whatsapp_number" :disabled="settings.env_overrides.whatsapp_number" /></label>
+        <small v-if="settings.env_overrides.whatsapp_number" class="field-note">Controlado por la variable de entorno WHATSAPP_NUMBER.</small>
+        <label><span>Email</span><input v-model="settings.email" :disabled="settings.env_overrides.email" /></label>
+        <small v-if="settings.env_overrides.email" class="field-note">Controlado por la variable de entorno CONTACT_EMAIL.</small>
+        <label><span>Instagram URL</span><input v-model="settings.instagram_url" :disabled="settings.env_overrides.instagram_url" placeholder="https://www.instagram.com/su_marca" /></label>
+        <small v-if="settings.env_overrides.instagram_url" class="field-note">Controlado por la variable de entorno INSTAGRAM_URL.</small>
+        <label><span>Facebook URL</span><input v-model="settings.facebook_url" :disabled="settings.env_overrides.facebook_url" placeholder="https://www.facebook.com/su_marca" /></label>
+        <small v-if="settings.env_overrides.facebook_url" class="field-note">Controlado por la variable de entorno FACEBOOK_URL.</small>
         <label><span>Nota de envío</span><textarea v-model="settings.shipping_note" rows="4"></textarea></label>
         <label><span>Moneda</span><input v-model="settings.currency" /></label>
         <label><span>Link de pago seguro</span><input v-model="settings.payment_link" /></label>
@@ -155,7 +162,7 @@ const currentSection = ref('dashboard');
 const stats = reactive({ total_products: 0, total_categories: 0, featured_products: 0 });
 const categories = ref([]);
 const products = ref([]);
-const settings = reactive({ brand_name: '', tagline: '', whatsapp_number: '', email: '', instagram: '', shipping_note: '', currency: '', payment_link: '' });
+const settings = reactive({ brand_name: '', tagline: '', whatsapp_number: '', email: '', instagram_url: '', facebook_url: '', shipping_note: '', currency: '', payment_link: '', env_overrides: { whatsapp_number: false, email: false, instagram_url: false, facebook_url: false } });
 const sections = [
   { key: 'dashboard', label: 'Resumen' },
   { key: 'categories', label: 'Categorías' },
@@ -324,7 +331,8 @@ async function deleteProduct(id) {
 }
 
 async function saveSettings() {
-  await request('/api/admin/settings', { method: 'PUT', body: JSON.stringify(settings), successMessage: 'Configuración guardada correctamente.' });
+  const payload = { ...settings, env_overrides: undefined };
+  await request('/api/admin/settings', { method: 'PUT', body: JSON.stringify(payload), successMessage: 'Configuración guardada correctamente.' });
 }
 
 async function changePassword() {

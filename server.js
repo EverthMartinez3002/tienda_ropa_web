@@ -13,7 +13,7 @@ const {
   normalizeAllowedHosts,
   validateHttpUrl,
   validateImageUrl,
-  validateWhatsAppNumber,
+  normalizeWhatsAppNumber,
   validateEmail,
   validateStrongPassword,
   cleanText,
@@ -24,9 +24,19 @@ const SESSION_HOURS = Number(process.env.SESSION_HOURS || 12);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/tienda_ropa';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const isProd = NODE_ENV === 'production';
+const USE_SECURE_COOKIES = String(process.env.SECURE_COOKIES || (process.env.VERCEL ? 'true' : 'false')).toLowerCase() === 'true';
 const PAYMENT_ALLOWED_HOSTS = normalizeAllowedHosts(process.env.PAYMENT_ALLOWED_HOSTS || '');
 const SESSION_COOKIE_NAME = isProd ? '__Host-admin_session' : 'admin_session';
 const CSRF_COOKIE_NAME = isProd ? '__Host-admin_csrf' : 'admin_csrf';
+const SOCIAL_ALLOWED_HOSTS = {
+  instagram: ['instagram.com', 'www.instagram.com'],
+  facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com'],
+};
+const ENV_WHATSAPP_NUMBER = normalizeWhatsAppNumber(process.env.WHATSAPP_NUMBER || '');
+const ENV_INSTAGRAM_URL = normalizeSocialUrl(process.env.INSTAGRAM_URL || '', 'instagram');
+const ENV_FACEBOOK_URL = normalizeSocialUrl(process.env.FACEBOOK_URL || '', 'facebook');
+const RAW_ENV_CONTACT_EMAIL = String(process.env.CONTACT_EMAIL || '').trim().toLowerCase();
+const ENV_CONTACT_EMAIL = validateEmail(RAW_ENV_CONTACT_EMAIL) ? RAW_ENV_CONTACT_EMAIL : '';
 
 if (isProd) {
   const adminPassword = String(process.env.ADMIN_PASSWORD || '');
@@ -103,7 +113,7 @@ function buildCookie(name, value, { maxAge = 0, httpOnly = true } = {}) {
     `Max-Age=${maxAge}`,
     'Priority=High',
   ].filter(Boolean);
-  if (isProd) parts.push('Secure');
+  if (USE_SECURE_COOKIES) parts.push('Secure');
   return parts.join('; ');
 }
 
@@ -124,6 +134,25 @@ function clearSessionCookies(res) {
 
 function isSafeMethod(method = 'GET') {
   return ['GET', 'HEAD', 'OPTIONS'].includes(String(method).toUpperCase());
+}
+
+function socialAllowedHosts(platform = 'instagram') {
+  return SOCIAL_ALLOWED_HOSTS[platform] || SOCIAL_ALLOWED_HOSTS.instagram;
+}
+
+function normalizeSocialUrl(value = '', platform = 'instagram') {
+  const raw = cleanText(value, 220).replace(/\s+/g, '');
+  if (!raw) return '';
+
+  if (!/^https?:\/\//i.test(raw)) {
+    const handle = raw.replace(/^@/, '').replace(/^\/+/,'');
+    if (!handle) return '';
+    const root = platform === 'facebook' ? 'https://www.facebook.com/' : 'https://www.instagram.com/';
+    return `${root}${encodeURIComponent(handle)}`;
+  }
+
+  const validation = validateHttpUrl(raw, { httpsOnly: true, allowedHosts: socialAllowedHosts(platform) });
+  return validation.ok ? validation.normalized : '';
 }
 
 function cspHeader() {
@@ -149,12 +178,28 @@ function sanitizeSettings(row) {
   return {
     brand_name: row.brand_name,
     tagline: row.tagline,
-    whatsapp_number: row.whatsapp_number,
-    email: row.email,
-    instagram: row.instagram,
+    whatsapp_number: ENV_WHATSAPP_NUMBER || normalizeWhatsAppNumber(row.whatsapp_number || ''),
+    email: ENV_CONTACT_EMAIL || row.email,
+    instagram_url: ENV_INSTAGRAM_URL || normalizeSocialUrl(row.instagram_url || row.instagram || '', 'instagram'),
+    facebook_url: ENV_FACEBOOK_URL || normalizeSocialUrl(row.facebook_url || '', 'facebook'),
     shipping_note: row.shipping_note,
     currency: row.currency,
     payment_enabled: paymentValidation.ok && Boolean(paymentValidation.normalized),
+  };
+}
+
+function sanitizeAdminSettings(row) {
+  if (!row) return null;
+  const publicSettings = sanitizeSettings(row);
+  return {
+    ...row,
+    ...publicSettings,
+    env_overrides: {
+      whatsapp_number: Boolean(ENV_WHATSAPP_NUMBER),
+      instagram_url: Boolean(ENV_INSTAGRAM_URL),
+      facebook_url: Boolean(ENV_FACEBOOK_URL),
+      email: Boolean(ENV_CONTACT_EMAIL),
+    },
   };
 }
 
@@ -529,33 +574,47 @@ app.delete('/api/admin/products/:id', asyncRoute(requireAdmin), requireCsrf, asy
 
 app.get('/api/admin/settings', asyncRoute(requireAdmin), asyncRoute(async (_req, res) => {
   const result = await pool.query('SELECT * FROM store_settings WHERE id = 1 LIMIT 1');
-  res.json(result.rows[0] || null);
+  res.json(sanitizeAdminSettings(result.rows[0] || null));
 }));
 
 app.put('/api/admin/settings', asyncRoute(requireAdmin), requireCsrf, asyncRoute(async (req, res) => {
   const brandName = cleanPayloadString(req.body?.brand_name || '', 120);
   const tagline = cleanPayloadString(req.body?.tagline || '', 240);
-  const whatsappNumber = validateWhatsAppNumber(req.body?.whatsapp_number || '');
+  const whatsappInput = validateWhatsAppNumber(req.body?.whatsapp_number || '');
   const email = cleanPayloadString(req.body?.email || '', 180).toLowerCase();
-  const instagram = cleanPayloadString(req.body?.instagram || '', 80);
+  const instagramUrl = normalizeSocialUrl(req.body?.instagram_url || '', 'instagram');
+  const facebookUrl = normalizeSocialUrl(req.body?.facebook_url || '', 'facebook');
   const shippingNote = cleanPayloadString(req.body?.shipping_note || '', 500);
   const currency = cleanPayloadString(req.body?.currency || 'USD', 12).toUpperCase();
   const paymentValidation = validatePaymentLink(req.body?.payment_link || '');
 
   if (!brandName) return res.status(400).json({ error: 'Debe ingresar el nombre de la marca.' });
   if (!tagline) return res.status(400).json({ error: 'Debe ingresar el tagline.' });
-  if (!whatsappNumber.ok) return res.status(400).json({ error: whatsappNumber.reason || 'WhatsApp inválido.' });
-  if (!validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
+  if (!ENV_WHATSAPP_NUMBER && !whatsappInput.ok) return res.status(400).json({ error: whatsappInput.reason || 'WhatsApp inválido.' });
+  if (!ENV_CONTACT_EMAIL && !validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
   if (!paymentValidation.ok) return res.status(400).json({ error: paymentValidation.reason || 'Link de pago inválido.' });
+  if (!ENV_INSTAGRAM_URL && req.body?.instagram_url && !instagramUrl) return res.status(400).json({ error: 'La URL de Instagram no es válida.' });
+  if (!ENV_FACEBOOK_URL && req.body?.facebook_url && !facebookUrl) return res.status(400).json({ error: 'La URL de Facebook no es válida.' });
+
+  const effectiveWhatsApp = ENV_WHATSAPP_NUMBER || whatsappInput.normalized;
+  const effectiveEmail = ENV_CONTACT_EMAIL || email;
+  const effectiveInstagramUrl = ENV_INSTAGRAM_URL || instagramUrl;
+  const effectiveFacebookUrl = ENV_FACEBOOK_URL || facebookUrl;
 
   await pool.query(
     `UPDATE store_settings
-        SET brand_name=$1, tagline=$2, whatsapp_number=$3, payment_link=$4, email=$5, instagram=$6, shipping_note=$7, currency=$8, updated_at=NOW()
+        SET brand_name=$1, tagline=$2, whatsapp_number=$3, payment_link=$4, email=$5, instagram=$6, instagram_url=$7, facebook_url=$8, shipping_note=$9, currency=$10, updated_at=NOW()
       WHERE id = 1`,
-    [brandName, tagline, whatsappNumber.normalized, paymentValidation.normalized, email, instagram, shippingNote, currency]
+    [brandName, tagline, effectiveWhatsApp, paymentValidation.normalized, effectiveEmail, effectiveInstagramUrl, effectiveInstagramUrl, effectiveFacebookUrl, shippingNote, currency]
   );
 
-  await audit(req.admin.id, 'settings_update', 'settings', 1, req, { brandName, email, instagram });
+  await audit(req.admin.id, 'settings_update', 'settings', 1, req, {
+    brandName,
+    email: effectiveEmail,
+    whatsappNumber: effectiveWhatsApp,
+    instagramUrl: effectiveInstagramUrl,
+    facebookUrl: effectiveFacebookUrl,
+  });
   res.json({ ok: true });
 }));
 

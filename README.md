@@ -42,3 +42,16 @@ npm run dev:client
 - El panel permite pegar una URL HTTPS o subir una imagen PNG, JPG o WEBP.
 - Las imágenes subidas se guardan dentro del propio producto para que la demo siga funcionando también en despliegues efímeros.
 - El tamaño máximo se controla con `MAX_PRODUCT_IMAGE_BYTES` (por defecto 2097152, equivalente a 2 MB).
+
+## Variables de entorno para canales públicos
+
+Defina estos valores para publicar los enlaces del footer y el número de contacto sin dejarlos quemados en la app:
+
+```env
+WHATSAPP_NUMBER=50370000000
+CONTACT_EMAIL=hola@su-tienda.com
+INSTAGRAM_URL=https://www.instagram.com/su_tienda
+FACEBOOK_URL=https://www.facebook.com/su_tienda
+```
+
+Si estas variables están presentes, tienen prioridad sobre lo guardado en la base de datos. CONTACT_EMAIL controla el correo público mostrado en el footer y enlaces de contacto.

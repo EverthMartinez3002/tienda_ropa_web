@@ -360,6 +360,9 @@ body[data-page='product'] .site-header {
   padding: 1.25rem;
 }
 .contact-card a { font-weight: 600; }
+.contact-link { display: inline-flex; align-items: center; gap: .7rem; }
+.contact-link-icon { width: 2rem; height: 2rem; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.88); border: 1px solid var(--line); color: var(--text); flex-shrink: 0; }
+.contact-link-icon svg { width: 1rem; height: 1rem; }
 .site-footer {
   display: flex;
   justify-content: space-between;
