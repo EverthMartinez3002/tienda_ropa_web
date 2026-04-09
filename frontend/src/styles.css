@@ -923,3 +923,117 @@ select:focus {
   .product-visual-card { padding: 1rem; }
   .form-split { grid-template-columns: 1fr; }
 }
+
+
+[hidden] { display: none !important; }
+
+.btn-danger-solid {
+  background: linear-gradient(135deg, #8e3535, #b84d4d);
+  color: #fff;
+  border-color: transparent;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 140;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(17, 22, 26, 0.42);
+  backdrop-filter: blur(8px);
+}
+
+.modal-card {
+  position: relative;
+  width: min(100%, 520px);
+  padding: 1.4rem;
+  border-radius: 28px;
+  border: 1px solid rgba(53, 43, 35, 0.1);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 30px 90px rgba(16, 18, 20, 0.18);
+}
+
+.modal-card h3 {
+  margin: 0.65rem 0 0.7rem;
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.5rem, 2.6vw, 2rem);
+}
+
+.modal-message {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  white-space: pre-line;
+}
+
+.modal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.modal-badge-default,
+.modal-badge-success {
+  background: rgba(31, 45, 56, 0.08);
+  color: var(--primary);
+}
+
+.modal-badge-danger {
+  background: rgba(156, 67, 67, 0.1);
+  color: var(--danger);
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.8rem;
+  margin-top: 1.35rem;
+}
+
+.modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.92);
+  color: var(--text);
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+
+.modal-fade-enter-from .modal-card,
+.modal-fade-leave-to .modal-card {
+  transform: translateY(10px) scale(0.985);
+}
+
+@media (max-width: 560px) {
+  .modal-card {
+    padding: 1.15rem;
+    border-radius: 24px;
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions .btn {
+    width: 100%;
+  }
+}

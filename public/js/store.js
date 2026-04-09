@@ -140,15 +140,27 @@ function openWhatsApp(number, text = '') {
 }
 
 function checkoutByWhatsApp() {
-  if (!state.cart.length) return alert('Primero agregue al menos un producto a la bolsa.');
+  if (!state.cart.length) {
+    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'info' });
+    return;
+  }
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
-  if (!number) return alert('No se ha configurado el número de WhatsApp.');
+  if (!number) {
+    window.ui.toast('No se ha configurado el número de WhatsApp.', { variant: 'error' });
+    return;
+  }
   openWhatsApp(number, buildWhatsAppText());
 }
 
 function checkoutByPaymentLink() {
-  if (!state.cart.length) return alert('Primero agregue al menos un producto a la bolsa.');
-  if (!state.settings?.payment_enabled) return alert('No se ha configurado un link de pago seguro.');
+  if (!state.cart.length) {
+    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'info' });
+    return;
+  }
+  if (!state.settings?.payment_enabled) {
+    window.ui.toast('No se ha configurado un link de pago seguro.', { variant: 'error' });
+    return;
+  }
   window.api.openExternal('/checkout/payment');
 }
 
@@ -304,13 +316,24 @@ elements.closeCartButton.addEventListener('click', closeCart);
 elements.drawerOverlay.addEventListener('click', closeCart);
 elements.clearCartButton.addEventListener('click', () => {
   if (!state.cart.length) return;
-  if (confirm('¿Desea vaciar toda la bolsa?')) clearCart();
+  window.ui.confirm({
+    title: 'Vaciar bolsa',
+    message: '¿Desea vaciar toda la bolsa?',
+    confirmText: 'Vaciar',
+    cancelText: 'Cancelar',
+    danger: true,
+  }).then((ok) => {
+    if (ok) clearCart();
+  });
 });
 elements.checkoutWhatsAppButton.addEventListener('click', checkoutByWhatsApp);
 elements.checkoutPaymentButton.addEventListener('click', checkoutByPaymentLink);
 elements.contactWhatsAppBtn.addEventListener('click', () => {
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
-  if (!number) return alert('No se ha configurado el número de WhatsApp.');
+  if (!number) {
+    window.ui.toast('No se ha configurado el número de WhatsApp.', { variant: 'error' });
+    return;
+  }
   if (!state.cart.length) {
     openWhatsApp(number);
     return;

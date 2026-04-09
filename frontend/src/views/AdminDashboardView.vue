@@ -131,9 +131,11 @@ import { computed, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
+import { useModal } from '@/composables/useModal';
 
 const { request } = useApi();
 const toast = useToast();
+const modal = useModal();
 const router = useRouter();
 const ready = ref(false);
 const admin = ref(null);
@@ -221,7 +223,14 @@ async function saveCategory() {
 }
 
 async function deleteCategory(id) {
-  if (!window.confirm('¿Desea eliminar esta categoría?')) return;
+  const confirmed = await modal.confirm({
+    title: 'Eliminar categoría',
+    message: 'Esta acción eliminará la categoría seleccionada del catálogo.',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'Cancelar',
+    tone: 'danger',
+  });
+  if (!confirmed) return;
   await request(`/api/admin/categories/${id}`, { method: 'DELETE', successMessage: 'Categoría eliminada correctamente.' });
   await Promise.all([loadCategories(), loadDashboard()]);
 }
@@ -238,7 +247,14 @@ async function saveProduct() {
 }
 
 async function deleteProduct(id) {
-  if (!window.confirm('¿Desea eliminar este producto?')) return;
+  const confirmed = await modal.confirm({
+    title: 'Eliminar producto',
+    message: 'Esta acción quitará el producto del inventario disponible en la tienda.',
+    confirmText: 'Sí, eliminar',
+    cancelText: 'Cancelar',
+    tone: 'danger',
+  });
+  if (!confirmed) return;
   await request(`/api/admin/products/${id}`, { method: 'DELETE', successMessage: 'Producto eliminado correctamente.' });
   await Promise.all([loadProducts(), loadDashboard()]);
 }

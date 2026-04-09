@@ -150,7 +150,14 @@ function resetCategoryForm() {
 }
 
 async function removeCategory(id) {
-  if (!confirm('¿Desea eliminar esta categoría?')) return;
+  const ok = await window.ui.confirm({
+    title: 'Eliminar categoría',
+    message: '¿Desea eliminar esta categoría?',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    danger: true,
+  });
+  if (!ok) return;
   await window.api.request(`/api/admin/categories/${id}`, { method: 'DELETE' });
   await loadCategories();
   await loadDashboard();
@@ -182,7 +189,14 @@ function resetProductForm() {
 }
 
 async function removeProduct(id) {
-  if (!confirm('¿Desea eliminar este producto?')) return;
+  const ok = await window.ui.confirm({
+    title: 'Eliminar producto',
+    message: '¿Desea eliminar este producto?',
+    confirmText: 'Eliminar',
+    cancelText: 'Cancelar',
+    danger: true,
+  });
+  if (!ok) return;
   await window.api.request(`/api/admin/products/${id}`, { method: 'DELETE' });
   await loadProducts();
   await loadDashboard();

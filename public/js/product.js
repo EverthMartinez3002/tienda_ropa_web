@@ -138,7 +138,10 @@ function checkoutByWhatsAppSingle() {
   if (!state.product) return;
   const size = state.selectedSize || state.product.sizes[0] || 'S';
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
-  if (!number) return alert('No se ha configurado el número de WhatsApp.');
+  if (!number) {
+    window.ui.toast('No se ha configurado el número de WhatsApp.', { variant: 'error' });
+    return;
+  }
   const text = `Hola, quiero comprar este producto:\n\n${state.product.name}\nTalla: ${size}\nPrecio: ${money(state.product.price)}`;
   window.api.openExternal(`https://wa.me/${number}?text=${encodeURIComponent(text)}`);
 }
@@ -179,21 +182,37 @@ elements.closeCartButton.addEventListener('click', closeCart);
 elements.drawerOverlay.addEventListener('click', closeCart);
 elements.clearCartButton.addEventListener('click', () => {
   if (!state.cart.length) return;
-  if (confirm('¿Desea vaciar toda la bolsa?')) {
+  window.ui.confirm({
+    title: 'Vaciar bolsa',
+    message: '¿Desea vaciar toda la bolsa?',
+    confirmText: 'Vaciar',
+    cancelText: 'Cancelar',
+    danger: true,
+  }).then((ok) => {
+    if (!ok) return;
     state.cart = [];
     saveCart();
     renderCart();
-  }
+  });
 });
 elements.addProductToCart.addEventListener('click', addCurrentProductToCart);
 elements.buyByWhatsApp.addEventListener('click', checkoutByWhatsAppSingle);
 elements.checkoutWhatsAppButton.addEventListener('click', () => {
-  if (!state.cart.length) return alert('Primero agregue un producto a la bolsa.');
+  if (!state.cart.length) {
+    window.ui.toast('Primero agregue un producto a la bolsa.', { variant: 'info' });
+    return;
+  }
   window.api.openExternal(buildWhatsAppCartUrl());
 });
 elements.checkoutPaymentButton.addEventListener('click', () => {
-  if (!state.cart.length) return alert('Primero agregue un producto a la bolsa.');
-  if (!state.settings?.payment_enabled) return alert('No se ha configurado un link de pago seguro.');
+  if (!state.cart.length) {
+    window.ui.toast('Primero agregue un producto a la bolsa.', { variant: 'info' });
+    return;
+  }
+  if (!state.settings?.payment_enabled) {
+    window.ui.toast('No se ha configurado un link de pago seguro.', { variant: 'error' });
+    return;
+  }
   window.api.openExternal('/checkout/payment');
 });
 

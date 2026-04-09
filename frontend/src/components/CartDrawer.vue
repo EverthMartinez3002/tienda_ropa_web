@@ -49,19 +49,31 @@ import { onMounted } from 'vue';
 import { useCart } from '@/composables/useCart';
 import { useStorefront } from '@/composables/useStorefront';
 import { useToast } from '@/composables/useToast';
+import { useModal } from '@/composables/useModal';
 
 const cart = useCart();
 const store = useStorefront();
 const toast = useToast();
+const modal = useModal();
 
-function handleClear() {
-  if (!cart.state.items.length) return;
-  if (window.confirm('¿Desea vaciar la bolsa?')) cart.clear();
+async function handleClear() {
+  if (!cart.state.items.length) {
+    toast.error('Primero agregue al menos un producto a la bolsa.');
+    return;
+  }
+  const confirmed = await modal.confirm({
+    title: 'Vaciar bolsa',
+    message: 'Se eliminarán todos los productos agregados a la bolsa actual.',
+    confirmText: 'Sí, vaciar',
+    cancelText: 'Seguir comprando',
+    tone: 'danger',
+  });
+  if (confirmed) cart.clear();
 }
 
 function checkoutWhatsApp() {
   if (!cart.state.items.length) {
-    toast.info('Primero agregue al menos un producto a la bolsa.');
+    toast.error('Primero agregue al menos un producto a la bolsa.');
     return;
   }
   const number = String(store.settings.value?.whatsapp_number || '').replace(/\D/g, '');
@@ -75,7 +87,7 @@ function checkoutWhatsApp() {
 
 function checkoutPayment() {
   if (!cart.state.items.length) {
-    toast.info('Primero agregue al menos un producto a la bolsa.');
+    toast.error('Primero agregue al menos un producto a la bolsa.');
     return;
   }
   if (!store.settings.value?.payment_enabled) {

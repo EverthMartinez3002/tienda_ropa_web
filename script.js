@@ -113,6 +113,196 @@ function money(value) {
   }).format(value);
 }
 
+const ui = (() => {
+  const STYLE_ID = "app-ui-style";
+  const TOAST_REGION_ID = "app-toast-region";
+
+  function ensureStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = `
+      .app-toast-region {
+        position: fixed;
+        right: 1.15rem;
+        bottom: 1.15rem;
+        z-index: 9999;
+        display: grid;
+        gap: .65rem;
+        max-width: min(420px, calc(100vw - 2.3rem));
+        pointer-events: none;
+      }
+      .app-toast {
+        pointer-events: auto;
+        padding: .95rem 1.05rem;
+        border-radius: var(--radius-md);
+        background: var(--surface-strong, var(--surface));
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(18px);
+        color: var(--text);
+      }
+      .app-toast__title { margin: 0 0 .2rem; font-weight: 800; font-size: .95rem; }
+      .app-toast__msg { margin: 0; color: var(--muted); line-height: 1.45; white-space: pre-line; }
+      .app-toast__close {
+        float: right;
+        margin-left: .75rem;
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--text) 6%, transparent);
+        border: 1px solid var(--line);
+        color: inherit;
+      }
+      .app-dialog-host {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: grid;
+        place-items: center;
+        padding: 1.25rem;
+      }
+      .app-dialog {
+        width: min(560px, 100%);
+        border-radius: var(--radius-lg);
+        background: var(--surface-strong, var(--surface));
+        border: 1px solid var(--line);
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(20px);
+        padding: 1.15rem;
+      }
+      .app-dialog__title { margin: 0 0 .55rem; font-weight: 800; }
+      .app-dialog__body { margin: 0; color: var(--muted); line-height: 1.6; white-space: pre-line; }
+      .app-dialog__actions { display: flex; justify-content: flex-end; gap: .6rem; margin-top: 1rem; }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function getToastRegion() {
+    let region = document.getElementById(TOAST_REGION_ID);
+    if (region) return region;
+
+    region = document.createElement("div");
+    region.id = TOAST_REGION_ID;
+    region.className = "app-toast-region";
+    region.setAttribute("role", "region");
+    region.setAttribute("aria-live", "polite");
+    region.setAttribute("aria-relevant", "additions");
+    document.body.appendChild(region);
+    return region;
+  }
+
+  function toast(message, options = {}) {
+    ensureStyles();
+
+    const variant = String(options.variant || "info");
+    const title = String(options.title || "").trim();
+    const text = String(message || "").trim();
+    if (!text) return;
+
+    const region = getToastRegion();
+    const node = document.createElement("div");
+    node.className = `app-toast app-toast--${variant}`;
+    node.setAttribute("role", variant === "error" ? "alert" : "status");
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "app-toast__close";
+    closeBtn.type = "button";
+    closeBtn.setAttribute("aria-label", "Cerrar");
+    closeBtn.textContent = "✕";
+
+    const titleEl = title ? document.createElement("p") : null;
+    if (titleEl) {
+      titleEl.className = "app-toast__title";
+      titleEl.textContent = title;
+    }
+
+    const msgEl = document.createElement("p");
+    msgEl.className = "app-toast__msg";
+    msgEl.textContent = text;
+
+    closeBtn.addEventListener("click", () => node.remove());
+    node.appendChild(closeBtn);
+    if (titleEl) node.appendChild(titleEl);
+    node.appendChild(msgEl);
+
+    region.appendChild(node);
+
+    const durationMs = Number(options.durationMs || (variant === "error" ? 4200 : 2600));
+    window.setTimeout(() => {
+      if (!node.isConnected) return;
+      node.remove();
+    }, Math.max(1200, durationMs));
+  }
+
+  function dialog(options = {}) {
+    ensureStyles();
+
+    const title = String(options.title || "Mensaje").trim();
+    const message = String(options.message || "").trim();
+    const closeText = String(options.closeText || "Cerrar");
+
+    const overlay = document.createElement("div");
+    overlay.className = "drawer-overlay";
+    overlay.hidden = false;
+    overlay.style.zIndex = "9999";
+
+    const host = document.createElement("div");
+    host.className = "app-dialog-host";
+
+    const card = document.createElement("div");
+    card.className = "app-dialog";
+    card.setAttribute("role", "dialog");
+    card.setAttribute("aria-modal", "true");
+
+    const titleEl = document.createElement("h3");
+    titleEl.className = "app-dialog__title";
+    titleEl.textContent = title;
+
+    const bodyEl = document.createElement("p");
+    bodyEl.className = "app-dialog__body";
+    bodyEl.textContent = message;
+
+    const actions = document.createElement("div");
+    actions.className = "app-dialog__actions";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.className = document.querySelector(".primary-btn") ? "primary-btn" : "ghost-btn";
+    closeBtn.textContent = closeText;
+
+    function onKeyDown(event) {
+      if (event.key === "Escape") close();
+    }
+
+    function close() {
+      document.removeEventListener("keydown", onKeyDown);
+      overlay.remove();
+      host.remove();
+    }
+
+    overlay.addEventListener("click", close);
+    closeBtn.addEventListener("click", close);
+    document.addEventListener("keydown", onKeyDown);
+
+    actions.appendChild(closeBtn);
+    card.appendChild(titleEl);
+    if (message) card.appendChild(bodyEl);
+    card.appendChild(actions);
+    host.appendChild(card);
+
+    document.body.appendChild(overlay);
+    document.body.appendChild(host);
+    closeBtn.focus();
+    return { close };
+  }
+
+  const api = { toast, dialog };
+  window.ui = window.ui || api;
+  return window.ui;
+})();
+
 function filteredProducts() {
   return products.filter((product) => {
     const byCategory = state.category === "all" || product.category === state.category;
@@ -297,7 +487,7 @@ checkoutButton.addEventListener("click", () => {
   const detailedItems = cartDetailedItems();
 
   if (!detailedItems.length) {
-    alert("Primero agregue al menos un producto al carrito.");
+    ui.toast("Primero agregue al menos un producto al carrito.", { variant: "info" });
     return;
   }
 
@@ -305,7 +495,11 @@ checkoutButton.addEventListener("click", () => {
     .map((item) => `${item.name} x${item.quantity} - ${money(item.total)}`)
     .join("\n");
 
-  alert(`Pedido listo para continuar:\n\n${summary}\n\nSubtotal: ${money(detailedItems.reduce((sum, item) => sum + item.total, 0))}`);
+  ui.dialog({
+    title: "Pedido listo para continuar",
+    message: `${summary}\n\nSubtotal: ${money(detailedItems.reduce((sum, item) => sum + item.total, 0))}`,
+    closeText: "Ok",
+  });
 });
 
 renderProducts();
