@@ -14,7 +14,6 @@ const {
   validateHttpUrl,
   validateImageUrl,
   normalizeWhatsAppNumber,
-  validateWhatsAppNumber,
   validateEmail,
   validateStrongPassword,
   cleanText,
