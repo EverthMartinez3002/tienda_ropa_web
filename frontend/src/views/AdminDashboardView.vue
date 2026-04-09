@@ -80,7 +80,7 @@
               <span>Subir imagen</span>
               <input ref="productImageInput" type="file" accept="image/png,image/jpeg,image/webp" @change="onProductFileChange" />
             </label>
-            <p class="form-hint">Formatos permitidos: PNG, JPG o WEBP. Tamaño máximo: 2 MB.</p>
+            <p class="form-hint">Formatos permitidos: PNG, JPG o WEBP. Tamaño máximo: 5 MB.</p>
             <p v-if="productHasUploadedImage" class="form-hint">Hay una imagen subida cargada para este producto.</p>
             <div v-if="productForm.image_url" class="product-image-preview-card">
               <img :src="productForm.image_url" alt="Vista previa del producto" class="product-image-preview" />
