@@ -27,8 +27,8 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const isProd = NODE_ENV === 'production';
 const USE_SECURE_COOKIES = String(process.env.SECURE_COOKIES || (process.env.VERCEL ? 'true' : 'false')).toLowerCase() === 'true';
 const PAYMENT_ALLOWED_HOSTS = normalizeAllowedHosts(process.env.PAYMENT_ALLOWED_HOSTS || '');
-const SESSION_COOKIE_NAME = USE_SECURE_COOKIES ? '__Host-admin_session' : 'admin_session';
-const CSRF_COOKIE_NAME = USE_SECURE_COOKIES ? '__Host-admin_csrf' : 'admin_csrf';
+const SESSION_COOKIE_NAME = isProd ? '__Host-admin_session' : 'admin_session';
+const CSRF_COOKIE_NAME = isProd ? '__Host-admin_csrf' : 'admin_csrf';
 const SOCIAL_ALLOWED_HOSTS = {
   instagram: ['instagram.com', 'www.instagram.com'],
   facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com'],
