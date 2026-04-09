@@ -16,6 +16,7 @@ const elements = {
   shippingNote: document.getElementById('shippingNote'),
   contactEmail: document.getElementById('contactEmail'),
   contactInstagram: document.getElementById('contactInstagram'),
+  contactFacebook: document.getElementById('contactFacebook'),
   featuredGrid: document.getElementById('featuredGrid'),
   productGrid: document.getElementById('productGrid'),
   categoryFilters: document.getElementById('categoryFilters'),
@@ -61,7 +62,14 @@ function countItems() {
 }
 
 function normalizeHandle(handle) {
-  return String(handle || '').replace(/^@/, '').replace(/[^a-zA-Z0-9._]/g, '');
+  return String(handle || '').replace(/^@/, '').replace(/[^a-zA-Z0-9._-]/g, '');
+}
+
+function safeUrl(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '#';
+  if (/^https?:\/\//i.test(raw)) return raw;
+  return '#';
 }
 
 function syncHeaderState() {
@@ -141,7 +149,7 @@ function openWhatsApp(number, text = '') {
 
 function checkoutByWhatsApp() {
   if (!state.cart.length) {
-    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'info' });
+    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'error' });
     return;
   }
   const number = (state.settings?.whatsapp_number || '').replace(/\D/g, '');
@@ -154,7 +162,7 @@ function checkoutByWhatsApp() {
 
 function checkoutByPaymentLink() {
   if (!state.cart.length) {
-    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'info' });
+    window.ui.toast('Primero agregue al menos un producto a la bolsa.', { variant: 'error' });
     return;
   }
   if (!state.settings?.payment_enabled) {
@@ -296,11 +304,18 @@ async function loadData() {
   elements.brandName.textContent = settings.brand_name;
   elements.brandTagline.textContent = settings.tagline;
   elements.shippingNote.textContent = settings.shipping_note;
-  elements.contactEmail.textContent = settings.email;
+  const contactEmailLabel = elements.contactEmail.querySelector('[data-contact-label]') || elements.contactEmail;
+  const contactInstagramLabel = elements.contactInstagram.querySelector('[data-contact-label]') || elements.contactInstagram;
+  const contactFacebookLabel = elements.contactFacebook?.querySelector('[data-contact-label]') || elements.contactFacebook;
+
+  contactEmailLabel.textContent = settings.email;
   elements.contactEmail.href = `mailto:${encodeURIComponent(settings.email)}`;
-  elements.contactInstagram.textContent = settings.instagram;
-  const handle = normalizeHandle(settings.instagram);
-  elements.contactInstagram.href = handle ? `https://instagram.com/${handle}` : '#';
+  contactInstagramLabel.textContent = 'Instagram';
+  elements.contactInstagram.href = safeUrl(settings.instagram_url);
+  if (elements.contactFacebook) {
+    contactFacebookLabel.textContent = 'Facebook';
+    elements.contactFacebook.href = safeUrl(settings.facebook_url);
+  }
 
   renderCategoryFilters();
   renderFeatured();

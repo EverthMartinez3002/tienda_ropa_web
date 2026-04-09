@@ -35,3 +35,17 @@ npm run dev:client
 - `/producto/:slug` detalle de producto
 - `/admin/login` acceso admin
 - `/admin/panel` panel admin
+
+
+## Variables de entorno para canales públicos
+
+Defina estos valores para publicar los enlaces del footer y el número de contacto sin dejarlos quemados en la app:
+
+```env
+WHATSAPP_NUMBER=50370000000
+CONTACT_EMAIL=hola@su-tienda.com
+INSTAGRAM_URL=https://www.instagram.com/su_tienda
+FACEBOOK_URL=https://www.facebook.com/su_tienda
+```
+
+Si estas variables están presentes, tienen prioridad sobre lo guardado en la base de datos. CONTACT_EMAIL controla el correo público mostrado en el footer y enlaces de contacto.

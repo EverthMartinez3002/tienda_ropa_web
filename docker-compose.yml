@@ -16,15 +16,20 @@ services:
     depends_on:
       - db
     environment:
-      NODE_ENV: ${NODE_ENV:-development}
+      NODE_ENV: ${NODE_ENV:-production}
       PORT: ${PORT:-3000}
       DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/tienda_ropa}
       SESSION_HOURS: ${SESSION_HOURS:-12}
+      SECURE_COOKIES: ${SECURE_COOKIES:-false}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@magbe.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_123!}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_456!}
       PASSWORD_PEPPER: ${PASSWORD_PEPPER:-change-this-extra-secret}
       PAYMENT_ALLOWED_HOSTS: ${PAYMENT_ALLOWED_HOSTS:-checkout.stripe.com,paypal.com,www.paypal.com}
       BRAND_NAME: ${BRAND_NAME:-Magbe Boutique}
+      WHATSAPP_NUMBER: ${WHATSAPP_NUMBER:-50370000000}
+      INSTAGRAM_URL: ${INSTAGRAM_URL:-https://www.instagram.com/su_tienda}
+      FACEBOOK_URL: ${FACEBOOK_URL:-https://www.facebook.com/su_tienda}
+      CONTACT_EMAIL: ${CONTACT_EMAIL:-magbe@gmail.com}
     ports:
       - "3000:3000"
 
