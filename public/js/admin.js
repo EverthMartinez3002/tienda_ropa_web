@@ -229,7 +229,14 @@ async function loadSettings() {
   state.settings = await window.api.request('/api/admin/settings');
   Object.entries(state.settings).forEach(([key, value]) => {
     const input = field(el.settingsForm, key);
-    if (input) input.value = value ?? '';
+    if (!input) return;
+    input.value = value ?? '';
+  });
+
+  const overrides = state.settings?.env_overrides || {};
+  [['whatsapp_number', 'whatsapp_number'], ['email', 'email'], ['instagram_url', 'instagram_url'], ['facebook_url', 'facebook_url']].forEach(([name, key]) => {
+    const input = field(el.settingsForm, name);
+    if (input) input.disabled = Boolean(overrides[key]);
   });
 }
 

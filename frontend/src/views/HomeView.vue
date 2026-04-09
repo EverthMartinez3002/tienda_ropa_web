@@ -128,11 +128,13 @@
       </article>
       <article class="about-card">
         <p class="overline">Instagram</p>
-        <p>{{ store.settings.value?.instagram || '@su_tienda' }}</p>
+        <p v-if="instagramUrl"><a class="inline-link" :href="instagramUrl" target="_blank" rel="noreferrer noopener">{{ instagramLabel }}</a></p>
+        <p v-else>No configurado</p>
       </article>
       <article class="about-card" id="contacto">
-        <p class="overline">Contacto</p>
-        <p>{{ store.settings.value?.email || 'hola@su-tienda.com' }}</p>
+        <p class="overline">Facebook</p>
+        <p v-if="facebookUrl"><a class="inline-link" :href="facebookUrl" target="_blank" rel="noreferrer noopener">{{ facebookLabel }}</a></p>
+        <p v-else>No configurado</p>
       </article>
     </section>
   </main>
@@ -147,7 +149,10 @@ import { useStorefront } from '@/composables/useStorefront';
 const store = useStorefront();
 const cart = useCart();
 const brandName = computed(() => store.settings.value?.brand_name?.trim() || 'Su marca');
-
+const instagramUrl = computed(() => String(store.settings.value?.instagram_url || '').trim());
+const facebookUrl = computed(() => String(store.settings.value?.facebook_url || '').trim());
+const instagramLabel = computed(() => instagramUrl.value ? 'Abrir Instagram' : 'No configurado');
+const facebookLabel = computed(() => facebookUrl.value ? 'Abrir Facebook' : 'No configurado');
 
 function scrollToCatalog() {
   document.querySelector('#catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });

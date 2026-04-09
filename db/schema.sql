@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS store_settings (
   payment_link TEXT NOT NULL DEFAULT 'https://example.com/pago',
   email TEXT NOT NULL DEFAULT 'hola@su-tienda.com',
   instagram TEXT NOT NULL DEFAULT '@su_tienda',
+  instagram_url TEXT NOT NULL DEFAULT 'https://www.instagram.com/su_tienda',
+  facebook_url TEXT NOT NULL DEFAULT 'https://www.facebook.com/su_tienda',
   shipping_note TEXT NOT NULL DEFAULT 'Envíos en 24 a 48 horas hábiles a nivel nacional.',
   currency TEXT NOT NULL DEFAULT 'USD',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

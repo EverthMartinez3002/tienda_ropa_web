@@ -137,11 +137,16 @@
               <label><span>Tagline</span><textarea name="tagline" rows="2" maxlength="220"></textarea></label>
               <div class="admin-grid-two compact-grid">
                 <label><span>WhatsApp</span><input name="whatsapp_number" maxlength="20" placeholder="50370000000" /></label>
+                <small class="form-note">WHATSAPP_NUMBER puede sobrescribir este valor si está definido.</small>
                 <label><span>Link de pago HTTPS</span><input name="payment_link" maxlength="500" placeholder="https://..." /></label>
               </div>
               <div class="admin-grid-two compact-grid">
                 <label><span>Email</span><input name="email" type="email" maxlength="160" /></label>
-                <label><span>Instagram</span><input name="instagram" maxlength="80" placeholder="@velastudio" /></label>
+                <small class="form-note">CONTACT_EMAIL puede sobrescribir este valor si está definido.</small>
+                <label><span>Instagram URL</span><input name="instagram_url" maxlength="180" placeholder="https://www.instagram.com/su_marca" /></label>
+                <small class="form-note">INSTAGRAM_URL puede sobrescribir este valor si está definido.</small>
+                <label><span>Facebook URL</span><input name="facebook_url" maxlength="180" placeholder="https://www.facebook.com/su_marca" /></label>
+                <small class="form-note">FACEBOOK_URL puede sobrescribir este valor si está definido.</small>
               </div>
               <label><span>Nota de envío</span><textarea name="shipping_note" rows="3" maxlength="240"></textarea></label>
               <button class="btn btn-primary" type="submit">Guardar configuración</button>
