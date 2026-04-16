@@ -36,7 +36,8 @@ const ENV_WHATSAPP_NUMBER = normalizeWhatsAppNumber(process.env.WHATSAPP_NUMBER 
 const ENV_INSTAGRAM_URL = normalizeSocialUrl(process.env.INSTAGRAM_URL || '', 'instagram');
 const ENV_FACEBOOK_URL = normalizeSocialUrl(process.env.FACEBOOK_URL || '', 'facebook');
 const RAW_ENV_CONTACT_EMAIL = String(process.env.CONTACT_EMAIL || '').trim().toLowerCase();
-const ENV_CONTACT_EMAIL = validateEmail(RAW_ENV_CONTACT_EMAIL) ? RAW_ENV_CONTACT_EMAIL : '';
+const ENV_CONTACT_EMAIL_VALIDATION = validateEmail(RAW_ENV_CONTACT_EMAIL);
+const ENV_CONTACT_EMAIL = ENV_CONTACT_EMAIL_VALIDATION.ok ? ENV_CONTACT_EMAIL_VALIDATION.normalized : '';
 
 if (isProd) {
   const adminPassword = String(process.env.ADMIN_PASSWORD || '');
@@ -67,7 +68,8 @@ if (shouldUseSsl(DATABASE_URL)) poolConfig.ssl = { rejectUnauthorized: false };
 
 const pool = new Pool(poolConfig);
 const app = express();
-const frontendDist = path.join(__dirname, 'frontend', 'dist');
+const frontendRoot = path.join(__dirname, 'frontend');
+const frontendDist = path.join(frontendRoot, 'dist');
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
 
@@ -290,17 +292,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: false, limit: '5mb' }));
-app.use(express.static(path.join(__dirname, 'public'), {
-  immutable: true,
-  maxAge: isProd ? '7d' : 0,
-  extensions: ['svg', 'png', 'jpg', 'jpeg', 'webp', 'ico'],
-}));
-
-if (fs.existsSync(frontendDist)) {
-  app.use(express.static(frontendDist, { maxAge: isProd ? '1h' : 0 }));
-}
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 app.get('/healthz', (_req, res) => res.json({ ok: true }));
 
@@ -362,14 +355,16 @@ app.post('/api/admin/login', rateLimit({ windowMs: 15 * 60 * 1000, max: 12, keyP
   const email = cleanPayloadString(req.body?.email || '', 180).toLowerCase();
   const password = String(req.body?.password || '');
 
-  if (!validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
+  const emailValidation = validateEmail(email);
+  if (!emailValidation.ok) return res.status(400).json({ error: 'Correo inválido.' });
   if (!password) return res.status(400).json({ error: 'Debe ingresar la contraseña.' });
 
-  const result = await pool.query('SELECT id, name, email, password_hash FROM admins WHERE email = $1 LIMIT 1', [email]);
+  const normalizedEmail = emailValidation.normalized;
+  const result = await pool.query('SELECT id, name, email, password_hash FROM admins WHERE email = $1 LIMIT 1', [normalizedEmail]);
   const admin = result.rows[0];
 
   if (!admin || !verifyPassword(password, admin.password_hash)) {
-    await audit(null, 'login_failed', 'admin', null, req, { email });
+    await audit(null, 'login_failed', 'admin', null, req, { email: normalizedEmail });
     return res.status(401).json({ error: 'Credenciales inválidas.' });
   }
 
@@ -587,17 +582,18 @@ app.put('/api/admin/settings', asyncRoute(requireAdmin), requireCsrf, asyncRoute
   const shippingNote = cleanPayloadString(req.body?.shipping_note || '', 500);
   const currency = cleanPayloadString(req.body?.currency || 'USD', 12).toUpperCase();
   const paymentValidation = validatePaymentLink(req.body?.payment_link || '');
+  const emailValidation = validateEmail(email);
 
   if (!brandName) return res.status(400).json({ error: 'Debe ingresar el nombre de la marca.' });
   if (!tagline) return res.status(400).json({ error: 'Debe ingresar el tagline.' });
   if (!ENV_WHATSAPP_NUMBER && !whatsappInput.ok) return res.status(400).json({ error: whatsappInput.reason || 'WhatsApp inválido.' });
-  if (!ENV_CONTACT_EMAIL && !validateEmail(email)) return res.status(400).json({ error: 'Correo inválido.' });
+  if (!ENV_CONTACT_EMAIL && !emailValidation.ok) return res.status(400).json({ error: 'Correo inválido.' });
   if (!paymentValidation.ok) return res.status(400).json({ error: paymentValidation.reason || 'Link de pago inválido.' });
   if (!ENV_INSTAGRAM_URL && req.body?.instagram_url && !instagramUrl) return res.status(400).json({ error: 'La URL de Instagram no es válida.' });
   if (!ENV_FACEBOOK_URL && req.body?.facebook_url && !facebookUrl) return res.status(400).json({ error: 'La URL de Facebook no es válida.' });
 
   const effectiveWhatsApp = ENV_WHATSAPP_NUMBER || whatsappInput.normalized;
-  const effectiveEmail = ENV_CONTACT_EMAIL || email;
+  const effectiveEmail = ENV_CONTACT_EMAIL || emailValidation.normalized;
   const effectiveInstagramUrl = ENV_INSTAGRAM_URL || instagramUrl;
   const effectiveFacebookUrl = ENV_FACEBOOK_URL || facebookUrl;
 
@@ -644,23 +640,65 @@ app.get('/admin', (_req, res) => {
   res.redirect('/admin/login');
 });
 
-app.get('/admin.html', (_req, res) => {
-  res.redirect('/admin/login');
+app.get('/index.html', (_req, res) => {
+  res.redirect(301, '/');
 });
 
-app.get(/^\/(?!api\/|checkout\/).*/, (_req, res, next) => {
-  const indexFile = path.join(frontendDist, 'index.html');
-  if (!fs.existsSync(indexFile)) return next();
-  res.sendFile(indexFile);
+app.get('/admin.html', (_req, res) => {
+  res.redirect(301, '/admin/login');
 });
+
+app.get('/product.html', (req, res) => {
+  const slug = cleanPayloadString(req.query?.slug || '', 180);
+  if (!slug) return res.redirect(301, '/');
+  return res.redirect(301, `/producto/${encodeURIComponent(slug)}`);
+});
+
+async function mountFrontend() {
+  if (isProd) {
+    const indexFile = path.join(frontendDist, 'index.html');
+    if (!fs.existsSync(indexFile)) {
+      throw new Error('No se encontró frontend/dist/index.html. Ejecute `npm run build` antes de iniciar en producción.');
+    }
+
+    app.use(express.static(frontendDist, { maxAge: '1h' }));
+    app.get(/^\/(?!api\/|checkout\/).*/, (_req, res) => {
+      res.sendFile(indexFile);
+    });
+    return;
+  }
+
+  const { createServer: createViteServer } = await import('vite');
+  const vite = await createViteServer({
+    configFile: path.join(frontendRoot, 'vite.config.js'),
+    server: { middlewareMode: true },
+    appType: 'custom',
+  });
+
+  app.use(vite.middlewares);
+  app.get(/^\/(?!api\/|checkout\/).*/, async (req, res, next) => {
+    try {
+      const templatePath = path.join(frontendRoot, 'index.html');
+      const rawTemplate = await fs.promises.readFile(templatePath, 'utf8');
+      const html = await vite.transformIndexHtml(req.originalUrl, rawTemplate);
+      res.status(200).setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.end(html);
+    } catch (error) {
+      vite.ssrFixStacktrace(error);
+      next(error);
+    }
+  });
+}
 
 app.use((err, _req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: 'Ocurrió un error interno.' });
 });
 
-(async () => {
+const ready = (async () => {
   await initDb(pool);
+  await mountFrontend();
+
   if (require.main === module) {
     app.listen(PORT, () => {
       console.log(`Servidor listo en http://localhost:${PORT}`);
@@ -668,4 +706,4 @@ app.use((err, _req, res, _next) => {
   }
 })();
 
-module.exports = app;
+module.exports = { app, ready };

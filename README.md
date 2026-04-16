@@ -1,51 +1,51 @@
-# Tienda de ropa web - Vue 3
+# Tienda de ropa web - Express + Vue 3
 
-Migración de la tienda a una base más seria con:
+Base unificada del proyecto:
 
-- Frontend en Vue 3 + Vite
-- Vue Router para tienda, producto y panel admin
-- Toastify para notificaciones
-- Backend Node.js + Express
-- PostgreSQL para productos, categorías, configuración y sesiones
+- **Backend:** Node.js + Express
+- **Frontend:** Vue 3 + Vue Router + Vite
+- **Base de datos:** PostgreSQL
+- **Admin:** autenticación por sesión + CSRF
 
-## Estructura
+## Estado de la arquitectura
 
-- `frontend/` aplicación Vue 3
-- `server.js` backend Express y APIs
-- `db/schema.sql` esquema de PostgreSQL
-- `lib/` seguridad y base de datos
+La base legacy fue retirada. El proyecto ahora funciona con una sola aplicación canónica:
 
-## Comandos
+- `server.js` expone las APIs y sirve la SPA Vue 3
+- `frontend/` contiene la aplicación Vue 3
+- `frontend/public/assets/` contiene los assets públicos usados por la tienda
+- `lib/` contiene seguridad y bootstrap de base de datos
+- `db/schema.sql` contiene el esquema base
+
+## Desarrollo
 
 ```bash
 npm install
-npm run build:client
+npm run dev
+```
+
+En desarrollo, Express monta Vite en middleware mode para servir la SPA y las APIs desde un solo entrypoint.
+
+## Build de producción
+
+```bash
+npm install
+npm run build
 npm start
 ```
 
-Para desarrollo del frontend:
+En producción, Express sirve `frontend/dist`.
 
-```bash
-npm run dev:client
-```
-
-## Rutas
+## Rutas canónicas
 
 - `/` tienda pública
 - `/producto/:slug` detalle de producto
 - `/admin/login` acceso admin
 - `/admin/panel` panel admin
 
+Se mantienen redirecciones de compatibilidad para rutas viejas como `/index.html`, `/product.html?slug=...` y `/admin.html`.
 
-## Imágenes de productos
-
-- El panel permite pegar una URL HTTPS o subir una imagen PNG, JPG o WEBP.
-- Las imágenes subidas se guardan dentro del propio producto para que la demo siga funcionando también en despliegues efímeros.
-- El tamaño máximo se controla con `MAX_PRODUCT_IMAGE_BYTES` (por defecto 2097152, equivalente a 2 MB).
-
-## Variables de entorno para canales públicos
-
-Defina estos valores para publicar los enlaces del footer y el número de contacto sin dejarlos quemados en la app:
+## Variables de entorno públicas
 
 ```env
 WHATSAPP_NUMBER=50370000000
@@ -54,4 +54,4 @@ INSTAGRAM_URL=https://www.instagram.com/su_tienda
 FACEBOOK_URL=https://www.facebook.com/su_tienda
 ```
 
-Si estas variables están presentes, tienen prioridad sobre lo guardado en la base de datos. CONTACT_EMAIL controla el correo público mostrado en el footer y enlaces de contacto.
+Si estas variables están presentes, tienen prioridad sobre lo guardado en la base de datos.

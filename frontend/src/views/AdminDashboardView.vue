@@ -74,19 +74,7 @@
           </div>
           <label><span>Tag</span><input v-model="productForm.tag" /></label>
           <label><span>Tallas</span><input v-model="productForm.sizes" placeholder="S,M,L" /></label>
-          <label><span>Imagen (URL o subida)</span><input :value="productImageUrlField" @input="onProductImageUrlInput" placeholder="/assets/products/camisa-nube.svg o https://..." /></label>
-          <div class="product-image-upload">
-            <label class="upload-field">
-              <span>Subir imagen</span>
-              <input ref="productImageInput" type="file" accept="image/png,image/jpeg,image/webp" @change="onProductFileChange" />
-            </label>
-            <p class="form-hint">Formatos permitidos: PNG, JPG o WEBP. Tamaño máximo: 5 MB.</p>
-            <p v-if="productHasUploadedImage" class="form-hint">Hay una imagen subida cargada para este producto.</p>
-            <div v-if="productForm.image_url" class="product-image-preview-card">
-              <img :src="productForm.image_url" alt="Vista previa del producto" class="product-image-preview" />
-              <button class="btn btn-secondary" type="button" @click="clearProductImage">Quitar imagen</button>
-            </div>
-          </div>
+          <label><span>Imagen</span><input v-model="productForm.image_url" placeholder="/assets/products/camisa-nube.svg" /></label>
           <label><span>Descripción corta</span><input v-model="productForm.short_description" /></label>
           <label><span>Descripción</span><textarea v-model="productForm.description" rows="5"></textarea></label>
           <div class="form-split checks-inline">
@@ -175,13 +163,6 @@ const categoryForm = reactive({ id: '', name: '', slug: '', description: '', is_
 const productForm = reactive({ id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
 const passwordForm = reactive({ current_password: '', new_password: '' });
 
-const productImageInput = ref(null);
-const productImageUrlField = ref('');
-const PRODUCT_IMAGE_MAX_BYTES = 2 * 1024 * 1024;
-const PRODUCT_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
-
-const productHasUploadedImage = computed(() => String(productForm.image_url || '').startsWith('data:image/'));
-
 const sectionTitle = computed(() => ({
   dashboard: 'Resumen general',
   categories: 'Gestión de categorías',
@@ -200,8 +181,6 @@ function resetCategoryForm() {
 
 function resetProductForm() {
   Object.assign(productForm, { id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
-  productImageUrlField.value = '';
-  if (productImageInput.value) productImageInput.value.value = '';
 }
 
 function editCategory(category) {
@@ -215,7 +194,6 @@ function editProduct(product) {
     category_id: product.category_id ? String(product.category_id) : '',
     sizes: Array.isArray(product.sizes) ? product.sizes.join(',') : 'S,M,L',
   });
-  productImageUrlField.value = String(product.image_url || '').startsWith('data:image/') ? '' : String(product.image_url || '');
   currentSection.value = 'products';
 }
 
@@ -262,48 +240,6 @@ async function deleteCategory(id) {
   if (!confirmed) return;
   await request(`/api/admin/categories/${id}`, { method: 'DELETE', successMessage: 'Categoría eliminada correctamente.' });
   await Promise.all([loadCategories(), loadDashboard()]);
-}
-
-
-function clearProductImage() {
-  productForm.image_url = '';
-  productImageUrlField.value = '';
-  if (productImageInput.value) productImageInput.value.value = '';
-}
-
-function onProductImageUrlInput(event) {
-  const value = String(event?.target?.value || '');
-  productImageUrlField.value = value;
-  productForm.image_url = value.trim();
-}
-
-function onProductFileChange(event) {
-  const file = event.target?.files?.[0];
-  if (!file) return;
-
-  if (!PRODUCT_IMAGE_TYPES.includes(file.type)) {
-    toast.error('La imagen debe ser PNG, JPG o WEBP.');
-    event.target.value = '';
-    return;
-  }
-
-  if (file.size > PRODUCT_IMAGE_MAX_BYTES) {
-    toast.error('La imagen supera el máximo permitido de 2 MB.');
-    event.target.value = '';
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    productForm.image_url = String(reader.result || '');
-    productImageUrlField.value = '';
-    toast.success('Imagen cargada correctamente. Recuerde guardar el producto.');
-  };
-  reader.onerror = () => {
-    toast.error('No se pudo leer la imagen seleccionada.');
-    event.target.value = '';
-  };
-  reader.readAsDataURL(file);
 }
 
 async function saveProduct() {
