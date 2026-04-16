@@ -264,7 +264,7 @@ function createAdminRouter({ pool, env }) {
 
     await pool.query(
       `UPDATE store_settings
-          SET brand_name=$1, tagline=$2, whatsapp_number=$3, payment_link=$4, email=$5, instagram_url=$6, facebook_url=$7, shipping_note=$8, currency=$9, updated_at=NOW()
+          SET brand_name=$1, tagline=$2, whatsapp_number=$3, payment_link=$4, email=$5, instagram_url=$6, facebook_url=$7, shipping_note=$8, currency=$9, primary_color=$10, secondary_color=$11, accent_color=$12, updated_at=NOW()
         WHERE id = 1`,
       [
         value.brandName,
@@ -276,6 +276,9 @@ function createAdminRouter({ pool, env }) {
         value.facebookUrl,
         value.shippingNote,
         value.currency,
+        value.primaryColor,
+        value.secondaryColor,
+        value.accentColor,
       ]
     );
 
@@ -285,6 +288,9 @@ function createAdminRouter({ pool, env }) {
       whatsappNumber: value.whatsappNumber,
       instagramUrl: value.instagramUrl,
       facebookUrl: value.facebookUrl,
+      primaryColor: value.primaryColor,
+      secondaryColor: value.secondaryColor,
+      accentColor: value.accentColor,
     });
 
     res.json({ ok: true });

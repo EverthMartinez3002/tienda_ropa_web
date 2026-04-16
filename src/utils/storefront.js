@@ -6,11 +6,18 @@ const {
   normalizeWhatsAppNumber,
   validateWhatsAppNumber,
   validateEmail,
+  validateHexColor,
 } = require('./security');
 
 const SOCIAL_ALLOWED_HOSTS = {
   instagram: ['instagram.com', 'www.instagram.com'],
   facebook: ['facebook.com', 'www.facebook.com', 'm.facebook.com'],
+};
+
+const DEFAULT_THEME = {
+  primary_color: '#1F2D38',
+  secondary_color: '#DBC8B5',
+  accent_color: '#B78465',
 };
 
 function isSafeMethod(method = 'GET') {
@@ -53,10 +60,24 @@ function validatePaymentLink(value, env) {
   });
 }
 
+function resolveThemeColors(row = {}) {
+  const primary = validateHexColor(row.primary_color || DEFAULT_THEME.primary_color);
+  const secondary = validateHexColor(row.secondary_color || DEFAULT_THEME.secondary_color);
+  const accent = validateHexColor(row.accent_color || DEFAULT_THEME.accent_color);
+
+  return {
+    primary_color: primary.ok ? primary.normalized : DEFAULT_THEME.primary_color,
+    secondary_color: secondary.ok ? secondary.normalized : DEFAULT_THEME.secondary_color,
+    accent_color: accent.ok ? accent.normalized : DEFAULT_THEME.accent_color,
+  };
+}
+
 function sanitizeSettings(row, env) {
   if (!row) return null;
   const paymentValidation = validatePaymentLink(row.payment_link || '', env);
   const envEmail = validateEmail(env.envContactEmail || '');
+  const theme = resolveThemeColors(row);
+
   return {
     brand_name: row.brand_name,
     tagline: row.tagline,
@@ -67,6 +88,7 @@ function sanitizeSettings(row, env) {
     shipping_note: row.shipping_note,
     currency: row.currency,
     payment_enabled: paymentValidation.ok && Boolean(paymentValidation.normalized),
+    ...theme,
   };
 }
 
@@ -155,6 +177,9 @@ function normalizeSettingsPayload(body = {}, env) {
   const shippingNote = cleanPayloadString(body.shipping_note || '', 500);
   const currency = cleanPayloadString(body.currency || 'USD', 12).toUpperCase();
   const paymentValidation = validatePaymentLink(body.payment_link || '', env);
+  const primaryColor = validateHexColor(body.primary_color || DEFAULT_THEME.primary_color);
+  const secondaryColor = validateHexColor(body.secondary_color || DEFAULT_THEME.secondary_color);
+  const accentColor = validateHexColor(body.accent_color || DEFAULT_THEME.accent_color);
 
   if (!brandName) return { ok: false, error: 'Debe ingresar el nombre de la marca.' };
   if (!tagline) return { ok: false, error: 'Debe ingresar el tagline.' };
@@ -171,6 +196,9 @@ function normalizeSettingsPayload(body = {}, env) {
   if (!env.envFacebookUrl && body.facebook_url && !facebookUrl) {
     return { ok: false, error: 'La URL de Facebook no es válida.' };
   }
+  if (!primaryColor.ok) return { ok: false, error: primaryColor.reason };
+  if (!secondaryColor.ok) return { ok: false, error: secondaryColor.reason };
+  if (!accentColor.ok) return { ok: false, error: accentColor.reason };
 
   return {
     ok: true,
@@ -184,11 +212,15 @@ function normalizeSettingsPayload(body = {}, env) {
       shippingNote,
       currency,
       paymentLink: paymentValidation.normalized,
+      primaryColor: primaryColor.normalized,
+      secondaryColor: secondaryColor.normalized,
+      accentColor: accentColor.normalized,
     },
   };
 }
 
 module.exports = {
+  DEFAULT_THEME,
   isSafeMethod,
   cleanPayloadString,
   normalizeSocialUrl,
@@ -198,4 +230,5 @@ module.exports = {
   normalizeProduct,
   normalizeProductPayload,
   normalizeSettingsPayload,
+  resolveThemeColors,
 };

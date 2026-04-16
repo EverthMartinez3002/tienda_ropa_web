@@ -149,7 +149,83 @@
         <label><span>Nota de envío</span><textarea v-model="settings.shipping_note" rows="4"></textarea></label>
         <label><span>Moneda</span><input v-model="settings.currency" /></label>
         <label><span>Link de pago seguro</span><input v-model="settings.payment_link" /></label>
-        <div class="form-actions"><button class="btn btn-primary" type="button" @click="saveSettings">Guardar configuración</button></div>
+
+        <div class="theme-config-block">
+          <div class="theme-section-head">
+            <div>
+              <h4>Colores principales</h4>
+              <p class="muted-copy">Seleccione una paleta base y, si lo desea, ajuste cada color manualmente.</p>
+            </div>
+            <span class="theme-current-chip">{{ currentThemePresetLabel }}</span>
+          </div>
+
+          <div class="theme-preset-grid">
+            <button
+              v-for="preset in themePresets"
+              :key="preset.key"
+              type="button"
+              class="theme-preset-card"
+              :class="{ active: activeThemePresetKey === preset.key }"
+              @click="applyThemePreset(preset)"
+            >
+              <div class="theme-preset-swatches">
+                <span :style="{ background: preset.primary_color }"></span>
+                <span :style="{ background: preset.secondary_color }"></span>
+                <span :style="{ background: preset.accent_color }"></span>
+              </div>
+              <strong>{{ preset.label }}</strong>
+              <small>{{ preset.description }}</small>
+            </button>
+          </div>
+
+          <div class="theme-color-grid">
+            <label class="theme-color-field">
+              <span>Color primario</span>
+              <div class="theme-color-input-wrap">
+                <input v-model="settings.primary_color" type="color" />
+                <input v-model="settings.primary_color" class="theme-hex-input" placeholder="#1F2D38" maxlength="7" />
+              </div>
+            </label>
+            <label class="theme-color-field">
+              <span>Color secundario</span>
+              <div class="theme-color-input-wrap">
+                <input v-model="settings.secondary_color" type="color" />
+                <input v-model="settings.secondary_color" class="theme-hex-input" placeholder="#DBC8B5" maxlength="7" />
+              </div>
+            </label>
+            <label class="theme-color-field">
+              <span>Color acento</span>
+              <div class="theme-color-input-wrap">
+                <input v-model="settings.accent_color" type="color" />
+                <input v-model="settings.accent_color" class="theme-hex-input" placeholder="#B78465" maxlength="7" />
+              </div>
+            </label>
+          </div>
+
+          <div class="theme-preview-card" :style="themePreviewStyle">
+            <div class="theme-preview-topbar">
+              <span class="theme-preview-mark">{{ previewBrandInitial }}</span>
+              <div>
+                <strong>{{ settings.brand_name || 'Su marca' }}</strong>
+                <small>{{ settings.tagline || 'Vista previa de la identidad visual' }}</small>
+              </div>
+            </div>
+            <div class="theme-preview-body">
+              <span class="theme-preview-badge">Colección destacada</span>
+              <h4>Así se sentirán los colores principales en la tienda.</h4>
+              <p>La paleta elegida impactará botones, insignias, acentos visuales y elementos destacados del sitio.</p>
+              <div class="theme-preview-actions">
+                <span class="theme-preview-btn primary">Comprar ahora</span>
+                <span class="theme-preview-btn secondary">Ver catálogo</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn btn-secondary" type="button" @click="applyDefaultTheme">Restablecer paleta base</button>
+          <button class="btn btn-primary" type="button" @click="saveSettings">Guardar configuración</button>
+        </div>
       </div>
 
       <div v-if="currentSection === 'security'" class="admin-card form-grid max-width-card">
@@ -168,18 +244,35 @@ import { useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
 import { useModal } from '@/composables/useModal';
+import { useStorefront } from '@/composables/useStorefront';
+import { applyThemeToDocument, resolveTheme, THEME_PRESETS } from '@/utils/theme';
 
 const { request } = useApi();
 const toast = useToast();
 const modal = useModal();
 const router = useRouter();
+const store = useStorefront();
 const ready = ref(false);
 const admin = ref(null);
 const currentSection = ref('dashboard');
 const stats = reactive({ total_products: 0, total_categories: 0, featured_products: 0 });
 const categories = ref([]);
 const products = ref([]);
-const settings = reactive({ brand_name: '', tagline: '', whatsapp_number: '', email: '', instagram_url: '', facebook_url: '', shipping_note: '', currency: '', payment_link: '', env_overrides: { whatsapp_number: false, email: false, instagram_url: false, facebook_url: false } });
+const settings = reactive({
+  brand_name: '',
+  tagline: '',
+  whatsapp_number: '',
+  email: '',
+  instagram_url: '',
+  facebook_url: '',
+  shipping_note: '',
+  currency: '',
+  payment_link: '',
+  primary_color: '#1F2D38',
+  secondary_color: '#DBC8B5',
+  accent_color: '#B78465',
+  env_overrides: { whatsapp_number: false, email: false, instagram_url: false, facebook_url: false },
+});
 const sections = [
   { key: 'dashboard', label: 'Resumen' },
   { key: 'categories', label: 'Categorías' },
@@ -187,6 +280,7 @@ const sections = [
   { key: 'settings', label: 'Configuración' },
   { key: 'security', label: 'Seguridad' },
 ];
+const themePresets = THEME_PRESETS;
 
 const categoryForm = reactive({ id: '', name: '', slug: '', description: '', is_active: true });
 const productForm = reactive({ id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
@@ -206,6 +300,25 @@ const sectionTitle = computed(() => ({
 }[currentSection.value] || 'Panel'));
 
 const productPreviewImage = computed(() => previewObjectUrl.value || productForm.image_url || fallbackImage);
+const previewBrandInitial = computed(() => (settings.brand_name || 'Su marca').trim().charAt(0).toUpperCase() || 'S');
+const resolvedPreviewTheme = computed(() => resolveTheme(settings));
+const activeThemePresetKey = computed(() => {
+  const current = resolvedPreviewTheme.value;
+  const preset = themePresets.find((item) => item.primary_color === current.primary_color && item.secondary_color === current.secondary_color && item.accent_color === current.accent_color);
+  return preset?.key || 'custom';
+});
+const currentThemePresetLabel = computed(() => {
+  const preset = themePresets.find((item) => item.key === activeThemePresetKey.value);
+  return preset ? preset.label : 'Paleta personalizada';
+});
+const themePreviewStyle = computed(() => ({
+  '--preview-primary': resolvedPreviewTheme.value.primary_color,
+  '--preview-secondary': resolvedPreviewTheme.value.secondary_color,
+  '--preview-accent': resolvedPreviewTheme.value.accent_color,
+  '--preview-primary-soft': resolvedPreviewTheme.value.primary_soft,
+  '--preview-primary-strong': resolvedPreviewTheme.value.primary_strong,
+  '--preview-accent-strong': resolvedPreviewTheme.value.accent_strong,
+}));
 
 function revokePreviewObjectUrl() {
   if (previewObjectUrl.value) {
@@ -231,6 +344,16 @@ function clearSelectedImage() {
 function resetProductForm() {
   Object.assign(productForm, { id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
   clearSelectedImage();
+}
+
+function applyThemePreset(preset) {
+  settings.primary_color = preset.primary_color;
+  settings.secondary_color = preset.secondary_color;
+  settings.accent_color = preset.accent_color;
+}
+
+function applyDefaultTheme() {
+  applyThemePreset(themePresets[0]);
 }
 
 function editCategory(category) {
@@ -351,6 +474,8 @@ async function deleteProduct(id) {
 async function saveSettings() {
   const payload = { ...settings, env_overrides: undefined };
   await request('/api/admin/settings', { method: 'PUT', body: JSON.stringify(payload), successMessage: 'Configuración guardada correctamente.' });
+  await Promise.all([loadSettings(), store.loadStore()]);
+  applyThemeToDocument(settings);
 }
 
 async function changePassword() {

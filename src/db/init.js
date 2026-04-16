@@ -11,6 +11,9 @@ const DEFAULT_WHATSAPP_NUMBER = '50370000000';
 const DEFAULT_INSTAGRAM_URL = 'https://www.instagram.com/su_tienda';
 const DEFAULT_FACEBOOK_URL = 'https://www.facebook.com/su_tienda';
 const DEFAULT_CONTACT_EMAIL = 'hola@su-tienda.com';
+const DEFAULT_PRIMARY_COLOR = '#1F2D38';
+const DEFAULT_SECONDARY_COLOR = '#DBC8B5';
+const DEFAULT_ACCENT_COLOR = '#B78465';
 
 async function ensureAdmin(pool, env) {
   const strongPassword = validateStrongPassword(env.adminPassword);
@@ -71,9 +74,9 @@ async function ensureSettings(pool, env) {
 
   await pool.query(
     `INSERT INTO store_settings
-      (id, brand_name, tagline, whatsapp_number, payment_link, email, instagram_url, facebook_url, shipping_note, currency)
+      (id, brand_name, tagline, whatsapp_number, payment_link, email, instagram_url, facebook_url, shipping_note, currency, primary_color, secondary_color, accent_color)
      VALUES
-      (1, $1, $2, $3, $4, $5, $6, $7, $8, 'USD')`,
+      (1, $1, $2, $3, $4, $5, $6, $7, $8, 'USD', $9, $10, $11)`,
     [
       env.brandName || DEFAULT_BRAND_NAME,
       'Piezas pensadas para vestir bonito todos los días.',
@@ -83,6 +86,9 @@ async function ensureSettings(pool, env) {
       instagramUrl,
       facebookUrl,
       'Envíos en 24 a 48 horas hábiles a nivel nacional.',
+      DEFAULT_PRIMARY_COLOR,
+      DEFAULT_SECONDARY_COLOR,
+      DEFAULT_ACCENT_COLOR,
     ]
   );
 }
@@ -180,6 +186,10 @@ async function ensureCatalog(pool) {
 
 async function initDatabase(pool, env) {
   await pool.query(schemaSql);
+  await pool.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS primary_color TEXT NOT NULL DEFAULT '#1F2D38'");
+  await pool.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS secondary_color TEXT NOT NULL DEFAULT '#DBC8B5'");
+  await pool.query("ALTER TABLE store_settings ADD COLUMN IF NOT EXISTS accent_color TEXT NOT NULL DEFAULT '#B78465'");
+  await pool.query("UPDATE store_settings SET primary_color = COALESCE(NULLIF(primary_color, ''), '#1F2D38'), secondary_color = COALESCE(NULLIF(secondary_color, ''), '#DBC8B5'), accent_color = COALESCE(NULLIF(accent_color, ''), '#B78465') WHERE id = 1");
   await pool.query('DELETE FROM admin_sessions WHERE expires_at <= NOW()');
   await ensureAdmin(pool, env);
   await ensureSettings(pool, env);

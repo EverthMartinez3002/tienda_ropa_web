@@ -68,6 +68,9 @@ CREATE TABLE IF NOT EXISTS store_settings (
   facebook_url TEXT NOT NULL DEFAULT 'https://www.facebook.com/su_tienda',
   shipping_note TEXT NOT NULL DEFAULT 'Envíos en 24 a 48 horas hábiles a nivel nacional.',
   currency TEXT NOT NULL DEFAULT 'USD',
+  primary_color TEXT NOT NULL DEFAULT '#1F2D38',
+  secondary_color TEXT NOT NULL DEFAULT '#DBC8B5',
+  accent_color TEXT NOT NULL DEFAULT '#B78465',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

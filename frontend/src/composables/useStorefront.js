@@ -1,5 +1,6 @@
 import { computed, reactive, toRefs } from 'vue';
 import { useApi } from './useApi';
+import { applyThemeToDocument } from '@/utils/theme';
 
 const state = reactive({
   loaded: false,
@@ -36,6 +37,7 @@ export function useStorefront() {
     if (typeof document !== 'undefined') {
       const titleBrand = settings?.brand_name?.trim() || 'Su marca';
       document.title = `${titleBrand} · Boutique online`;
+      applyThemeToDocument(settings || {});
     }
     state.categories = categories;
     state.products = products;

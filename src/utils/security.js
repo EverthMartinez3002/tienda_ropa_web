@@ -145,6 +145,14 @@ function validateWhatsAppNumber(value = '') {
   return { ok: true, normalized: digits };
 }
 
+function validateHexColor(value = '') {
+  const color = String(value || '').trim().toUpperCase();
+  if (!/^#[0-9A-F]{6}$/.test(color)) {
+    return { ok: false, reason: 'El color debe estar en formato hexadecimal #RRGGBB.' };
+  }
+  return { ok: true, normalized: color };
+}
+
 function validateEmail(value = '') {
   const email = String(value).trim().toLowerCase();
   if (!email) return { ok: false, reason: 'El correo es obligatorio.' };
@@ -181,6 +189,7 @@ module.exports = {
   validateImageUrl,
   normalizeWhatsAppNumber,
   validateWhatsAppNumber,
+  validateHexColor,
   validateEmail,
   validateStrongPassword,
   cleanText,
