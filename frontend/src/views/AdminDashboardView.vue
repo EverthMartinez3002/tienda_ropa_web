@@ -74,7 +74,36 @@
           </div>
           <label><span>Tag</span><input v-model="productForm.tag" /></label>
           <label><span>Tallas</span><input v-model="productForm.sizes" placeholder="S,M,L" /></label>
-          <label><span>Imagen</span><input v-model="productForm.image_url" placeholder="/assets/products/camisa-nube.svg" /></label>
+
+          <div class="image-field-group">
+            <div class="image-field-header">
+              <span class="field-label">Imagen del producto</span>
+              <small class="muted-copy">Puede subir un archivo o pegar una URL/una ruta existente.</small>
+            </div>
+
+            <div class="image-upload-row">
+              <input ref="imageInputRef" class="image-file-input" type="file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" @change="onImageSelected" />
+              <button class="btn btn-secondary" type="button" @click="uploadSelectedImage" :disabled="!selectedImageFile || imageUploadPending">
+                {{ imageUploadPending ? 'Subiendo...' : 'Subir imagen' }}
+              </button>
+              <button class="btn btn-secondary" type="button" @click="clearSelectedImage" :disabled="imageUploadPending && !selectedImageFile">
+                Limpiar selección
+              </button>
+            </div>
+
+            <label><span>Ruta o URL de imagen</span><input v-model="productForm.image_url" placeholder="/uploads/mi-imagen.webp o https://..." /></label>
+
+            <div class="image-preview-card">
+              <img v-if="productPreviewImage" :src="productPreviewImage" :alt="productForm.name || 'Vista previa del producto'" class="image-preview" />
+              <div v-else class="image-preview placeholder-preview">Vista previa de imagen</div>
+              <div class="image-preview-meta">
+                <strong>{{ selectedImageFile?.name || 'Sin archivo seleccionado' }}</strong>
+                <small class="muted-copy">Tamaño máximo: 4 MB. Formatos: JPG, PNG, WEBP, GIF, SVG.</small>
+                <small v-if="productForm.image_url" class="muted-copy">Ruta actual: {{ productForm.image_url }}</small>
+              </div>
+            </div>
+          </div>
+
           <label><span>Descripción corta</span><input v-model="productForm.short_description" /></label>
           <label><span>Descripción</span><textarea v-model="productForm.description" rows="5"></textarea></label>
           <div class="form-split checks-inline">
@@ -88,7 +117,7 @@
           <h3>Productos</h3>
           <div class="admin-list">
             <article v-for="product in products" :key="product.id" class="admin-item-card product-card-admin">
-              <img :src="product.image_url" :alt="product.name" />
+              <img :src="product.image_url || fallbackImage" :alt="product.name" />
               <div>
                 <strong>{{ product.name }}</strong>
                 <p>{{ product.short_description || 'Sin descripción corta.' }}</p>
@@ -134,7 +163,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useApi } from '@/composables/useApi';
 import { useToast } from '@/composables/useToast';
@@ -162,6 +191,11 @@ const sections = [
 const categoryForm = reactive({ id: '', name: '', slug: '', description: '', is_active: true });
 const productForm = reactive({ id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
 const passwordForm = reactive({ current_password: '', new_password: '' });
+const imageInputRef = ref(null);
+const selectedImageFile = ref(null);
+const imageUploadPending = ref(false);
+const previewObjectUrl = ref('');
+const fallbackImage = '/assets/logo.svg';
 
 const sectionTitle = computed(() => ({
   dashboard: 'Resumen general',
@@ -171,6 +205,15 @@ const sectionTitle = computed(() => ({
   security: 'Seguridad del panel',
 }[currentSection.value] || 'Panel'));
 
+const productPreviewImage = computed(() => previewObjectUrl.value || productForm.image_url || fallbackImage);
+
+function revokePreviewObjectUrl() {
+  if (previewObjectUrl.value) {
+    URL.revokeObjectURL(previewObjectUrl.value);
+    previewObjectUrl.value = '';
+  }
+}
+
 function money(value) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(value || 0));
 }
@@ -179,8 +222,15 @@ function resetCategoryForm() {
   Object.assign(categoryForm, { id: '', name: '', slug: '', description: '', is_active: true });
 }
 
+function clearSelectedImage() {
+  selectedImageFile.value = null;
+  revokePreviewObjectUrl();
+  if (imageInputRef.value) imageInputRef.value.value = '';
+}
+
 function resetProductForm() {
   Object.assign(productForm, { id: '', name: '', slug: '', category_id: '', price: '', compare_at_price: '', tag: '', sizes: 'S,M,L', image_url: '', short_description: '', description: '', featured: false, is_active: true });
+  clearSelectedImage();
 }
 
 function editCategory(category) {
@@ -194,7 +244,38 @@ function editProduct(product) {
     category_id: product.category_id ? String(product.category_id) : '',
     sizes: Array.isArray(product.sizes) ? product.sizes.join(',') : 'S,M,L',
   });
+  clearSelectedImage();
   currentSection.value = 'products';
+}
+
+function onImageSelected(event) {
+  const file = event.target?.files?.[0] || null;
+  revokePreviewObjectUrl();
+  selectedImageFile.value = file;
+  if (file) previewObjectUrl.value = URL.createObjectURL(file);
+}
+
+async function uploadSelectedImage() {
+  if (!selectedImageFile.value) {
+    toast.warning('Primero seleccione una imagen.');
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append('image', selectedImageFile.value);
+  imageUploadPending.value = true;
+
+  try {
+    const data = await request('/api/admin/products/upload-image', {
+      method: 'POST',
+      body: formData,
+      successMessage: 'Imagen subida correctamente.',
+    });
+    productForm.image_url = data.image_url;
+    clearSelectedImage();
+  } finally {
+    imageUploadPending.value = false;
+  }
 }
 
 async function loadSession() {
@@ -263,6 +344,7 @@ async function deleteProduct(id) {
   });
   if (!confirmed) return;
   await request(`/api/admin/products/${id}`, { method: 'DELETE', successMessage: 'Producto eliminado correctamente.' });
+  if (productForm.id === id) resetProductForm();
   await Promise.all([loadProducts(), loadDashboard()]);
 }
 
@@ -291,5 +373,9 @@ onMounted(async () => {
     toast.warning('Debe iniciar sesión para entrar al panel.');
     router.replace('/admin/login');
   }
+});
+
+onBeforeUnmount(() => {
+  revokePreviewObjectUrl();
 });
 </script>

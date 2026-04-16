@@ -37,6 +37,7 @@ function createEnv() {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const isProd = nodeEnv === 'production';
   const secureCookies = parseBoolean(process.env.SECURE_COOKIES, Boolean(process.env.VERCEL) || isProd);
+  const uploadDirPath = path.join(process.cwd(), 'storage', 'uploads');
 
   return {
     nodeEnv,
@@ -60,6 +61,8 @@ function createEnv() {
     envFacebookUrl: String(process.env.FACEBOOK_URL || '').trim(),
     envContactEmail: String(process.env.CONTACT_EMAIL || '').trim().toLowerCase(),
     clientDistPath: path.join(process.cwd(), 'dist', 'client'),
+    uploadDirPath,
+    uploadBaseUrl: '/uploads',
   };
 }
 

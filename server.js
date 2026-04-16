@@ -12,6 +12,7 @@ const { createPublicRouter, registerCheckoutRoute } = require('./src/routes/publ
 const { createAdminRouter } = require('./src/routes/admin-routes');
 const { registerSpaRoutes } = require('./src/routes/spa-routes');
 const { validateStrongPassword } = require('./src/utils/security');
+const { ensureUploadDir } = require('./src/services/upload-service');
 
 const env = createEnv();
 const pool = createPool(env);
@@ -27,6 +28,7 @@ if (env.isProd) {
   }
 }
 
+ensureUploadDir(env.uploadDirPath);
 const ready = initDatabase(pool, env);
 
 app.locals.env = env;
@@ -42,6 +44,11 @@ app.get('/healthz', async (_req, res) => {
   await pool.query('SELECT 1');
   res.json({ ok: true });
 });
+
+app.use(env.uploadBaseUrl, express.static(env.uploadDirPath, {
+  maxAge: env.isProd ? '1h' : 0,
+  fallthrough: false,
+}));
 
 app.use('/api/public', createPublicRouter({ pool, env }));
 registerCheckoutRoute(app, { pool, env });

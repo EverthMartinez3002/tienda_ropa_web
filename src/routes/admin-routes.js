@@ -22,11 +22,13 @@ const {
   getAdminSession,
 } = require('../services/session-service');
 const { audit } = require('../services/audit-service');
+const { createProductImageUpload, deleteUploadByUrl, imageUrlFromFile } = require('../services/upload-service');
 
 function createAdminRouter({ pool, env }) {
   const router = express.Router();
   const requireAdmin = createRequireAdmin({ pool, env });
   const requireCsrf = createRequireCsrf({ env });
+  const uploadProductImage = createProductImageUpload(env);
 
   router.post(
     '/login',
@@ -145,6 +147,21 @@ function createAdminRouter({ pool, env }) {
     res.json({ ok: true });
   }));
 
+  router.post('/products/upload-image', asyncHandler(requireAdmin), asyncHandler(requireCsrf), asyncHandler(async (req, res) => {
+    await new Promise((resolve, reject) => {
+      uploadProductImage(req, res, (error) => {
+        if (error) return reject(error);
+        resolve();
+      });
+    });
+
+    if (!req.file) return res.status(400).json({ error: 'Debe seleccionar una imagen.' });
+
+    const imageUrl = imageUrlFromFile(req.file, env);
+    await audit(pool, req.admin.id, 'product_image_upload', 'asset', req.file.filename, req, { image_url: imageUrl });
+    res.status(201).json({ ok: true, image_url: imageUrl, filename: req.file.filename });
+  }));
+
   router.get('/products', asyncHandler(requireAdmin), asyncHandler(async (_req, res) => {
     const result = await pool.query(
       `SELECT p.*, c.name AS category_name, c.slug AS category_slug
@@ -193,6 +210,8 @@ function createAdminRouter({ pool, env }) {
     if (!payload.ok) return res.status(400).json({ error: payload.error });
     const value = payload.value;
 
+    const currentProduct = await pool.query('SELECT image_url FROM products WHERE id = $1 LIMIT 1', [id]);
+
     await pool.query(
       `UPDATE products
           SET name=$1, slug=$2, category_id=$3, price=$4, compare_at_price=$5, short_description=$6, description=$7, image_url=$8, tag=$9, sizes=$10, featured=$11, is_active=$12, updated_at=NOW()
@@ -214,6 +233,10 @@ function createAdminRouter({ pool, env }) {
       ]
     );
 
+    if (currentProduct.rows[0]?.image_url && currentProduct.rows[0].image_url !== value.imageUrl) {
+      deleteUploadByUrl(currentProduct.rows[0].image_url, env);
+    }
+
     await audit(pool, req.admin.id, 'product_update', 'product', id, req, { name: value.name, slug: value.slug });
     res.json({ ok: true });
   }));
@@ -222,7 +245,9 @@ function createAdminRouter({ pool, env }) {
     const id = Number(req.params.id);
     if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
 
+    const existing = await pool.query('SELECT image_url FROM products WHERE id = $1 LIMIT 1', [id]);
     await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    deleteUploadByUrl(existing.rows[0]?.image_url || '', env);
     await audit(pool, req.admin.id, 'product_delete', 'product', id, req, {});
     res.json({ ok: true });
   }));

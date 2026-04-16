@@ -111,3 +111,11 @@ Si su proveedor le exige SSL, ajuste `DATABASE_URL` con un modo explícito. Para
 - `GET /api/admin/settings`
 - `PUT /api/admin/settings`
 - `PUT /api/admin/change-password`
+
+
+## Subida de imágenes para productos
+
+- El panel admin ya permite subir imágenes desde archivo y guardar la ruta automáticamente en `image_url`.
+- Se aceptan archivos JPG, PNG, WEBP, GIF y SVG de hasta 4 MB.
+- En Docker Compose, las imágenes se persisten en el volumen `uploads_data`.
+- Las imágenes subidas se sirven desde `/uploads/<archivo>`.

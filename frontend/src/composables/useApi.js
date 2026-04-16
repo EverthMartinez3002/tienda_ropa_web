@@ -15,8 +15,9 @@ export function useApi() {
       Accept: 'application/json',
       ...(options.headers || {}),
     };
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
 
-    if (options.body && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
+    if (options.body && !isFormData && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
     if (!['GET', 'HEAD', 'OPTIONS'].includes(method) && url.startsWith('/api/admin/')) {
       const csrf = getCookie('__Host-admin_csrf') || getCookie('admin_csrf');
