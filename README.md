@@ -34,7 +34,7 @@ npm run build
 npm start
 ```
 
-En producción, Express sirve `frontend/dist`.
+En producción, Express sirve `public`.
 
 ## Rutas canónicas
 

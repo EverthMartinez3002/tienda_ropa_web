@@ -24,6 +24,7 @@ const SESSION_HOURS = Number(process.env.SESSION_HOURS || 12);
 const DATABASE_URL = process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/tienda_ropa';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const isProd = NODE_ENV === 'production';
+const isVercel = Boolean(process.env.VERCEL);
 const USE_SECURE_COOKIES = String(process.env.SECURE_COOKIES || (process.env.VERCEL ? 'true' : 'false')).toLowerCase() === 'true';
 const PAYMENT_ALLOWED_HOSTS = normalizeAllowedHosts(process.env.PAYMENT_ALLOWED_HOSTS || '');
 const SESSION_COOKIE_NAME = isProd ? '__Host-admin_session' : 'admin_session';
@@ -69,9 +70,25 @@ if (shouldUseSsl(DATABASE_URL)) poolConfig.ssl = { rejectUnauthorized: false };
 const pool = new Pool(poolConfig);
 const app = express();
 const frontendRoot = path.join(__dirname, 'frontend');
-const frontendDist = path.join(frontendRoot, 'dist');
+const frontendBuildDir = path.join(__dirname, 'public');
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+
+let readyResolve;
+let readyReject;
+const ready = new Promise((resolve, reject) => {
+  readyResolve = resolve;
+  readyReject = reject;
+});
+
+app.use(async (_req, _res, next) => {
+  try {
+    await ready;
+    next();
+  } catch (error) {
+    next(error);
+  }
+});
 
 const rateBuckets = new Map();
 
@@ -656,13 +673,16 @@ app.get('/product.html', (req, res) => {
 
 async function mountFrontend() {
   if (isProd) {
-    const indexFile = path.join(frontendDist, 'index.html');
+    const indexFile = path.join(frontendBuildDir, 'index.html');
     if (!fs.existsSync(indexFile)) {
-      throw new Error('No se encontró frontend/dist/index.html. Ejecute `npm run build` antes de iniciar en producción.');
+      throw new Error('No se encontró public/index.html. Ejecute `npm run build` antes de iniciar en producción.');
     }
 
-    app.use(express.static(frontendDist, { maxAge: '1h' }));
-    app.get(/^\/(?!api\/|checkout\/).*/, (_req, res) => {
+    if (!isVercel) {
+      app.use(express.static(frontendBuildDir, { maxAge: '1h' }));
+    }
+
+    app.get(/^\/(?!api\/|checkout\/|assets\/).*/, (_req, res) => {
       res.sendFile(indexFile);
     });
     return;
@@ -695,15 +715,24 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: 'Ocurrió un error interno.' });
 });
 
-const ready = (async () => {
-  await initDb(pool);
-  await mountFrontend();
+(async () => {
+  try {
+    await initDb(pool);
+    await mountFrontend();
+    readyResolve();
 
-  if (require.main === module) {
-    app.listen(PORT, () => {
-      console.log(`Servidor listo en http://localhost:${PORT}`);
-    });
+    if (require.main === module) {
+      app.listen(PORT, () => {
+        console.log(`Servidor listo en http://localhost:${PORT}`);
+      });
+    }
+  } catch (error) {
+    readyReject(error);
+    if (require.main === module) {
+      console.error(error);
+      process.exit(1);
+    }
   }
 })();
 
-module.exports = { app, ready };
+module.exports = app;
