@@ -48,5 +48,29 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/index.html",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/admin.html",
+      "destination": "/admin/login",
+      "permanent": true
+    },
+    {
+      "source": "/product.html",
+      "has": [
+        {
+          "type": "query",
+          "key": "slug",
+          "value": "(?P<slug>.*)"
+        }
+      ],
+      "destination": "/producto/:slug",
+      "permanent": true
+    }
   ]
 }
