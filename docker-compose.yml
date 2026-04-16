@@ -1,35 +1,37 @@
+version: '3.9'
+
 services:
   db:
-    image: postgres:17
+    image: postgres:16-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-tienda_ropa}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: tienda_ropa
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
 
   app:
     build: .
     depends_on:
       - db
     environment:
-      NODE_ENV: ${NODE_ENV:-production}
-      PORT: ${PORT:-3000}
-      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:postgres@db:5432/tienda_ropa}
-      SESSION_HOURS: ${SESSION_HOURS:-12}
-      SECURE_COOKIES: ${SECURE_COOKIES:-false}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@magbe.com}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-ChangeMeNow_456!}
-      PASSWORD_PEPPER: ${PASSWORD_PEPPER:-change-this-extra-secret}
-      PAYMENT_ALLOWED_HOSTS: ${PAYMENT_ALLOWED_HOSTS:-checkout.stripe.com,paypal.com,www.paypal.com}
-      BRAND_NAME: ${BRAND_NAME:-Magbe Boutique}
-      WHATSAPP_NUMBER: ${WHATSAPP_NUMBER:-50370000000}
-      INSTAGRAM_URL: ${INSTAGRAM_URL:-https://www.instagram.com/su_tienda}
-      FACEBOOK_URL: ${FACEBOOK_URL:-https://www.facebook.com/su_tienda}
-      CONTACT_EMAIL: ${CONTACT_EMAIL:-magbe@gmail.com}
+      NODE_ENV: development
+      PORT: 3000
+      DATABASE_URL: postgres://postgres:postgres@db:5432/tienda_ropa
+      SESSION_HOURS: 12
+      SECURE_COOKIES: "false"
+      ADMIN_EMAIL: admin@su-tienda.local
+      ADMIN_PASSWORD: ChangeMeNow_123!
+      PASSWORD_PEPPER: change-this-extra-secret
+      BRAND_NAME: Mi Boutique
+      WHATSAPP_NUMBER: "50370000000"
+      CONTACT_EMAIL: hola@su-tienda.com
+      INSTAGRAM_URL: https://www.instagram.com/su_tienda
+      FACEBOOK_URL: https://www.facebook.com/su_tienda
+      PAYMENT_ALLOWED_HOSTS: checkout.stripe.com,paypal.com,www.paypal.com
+      DEFAULT_PAYMENT_LINK: https://example.com/pago
     ports:
       - "3000:3000"
 

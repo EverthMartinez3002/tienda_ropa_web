@@ -64,10 +64,15 @@ CREATE TABLE IF NOT EXISTS store_settings (
   whatsapp_number TEXT NOT NULL DEFAULT '50370000000',
   payment_link TEXT NOT NULL DEFAULT 'https://example.com/pago',
   email TEXT NOT NULL DEFAULT 'hola@su-tienda.com',
-  instagram TEXT NOT NULL DEFAULT '@su_tienda',
   instagram_url TEXT NOT NULL DEFAULT 'https://www.instagram.com/su_tienda',
   facebook_url TEXT NOT NULL DEFAULT 'https://www.facebook.com/su_tienda',
   shipping_note TEXT NOT NULL DEFAULT 'Envíos en 24 a 48 horas hábiles a nivel nacional.',
   currency TEXT NOT NULL DEFAULT 'USD',
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS admin_sessions_admin_id_idx ON admin_sessions(admin_id);
+CREATE INDEX IF NOT EXISTS admin_audit_logs_admin_id_idx ON admin_audit_logs(admin_id);
+CREATE INDEX IF NOT EXISTS categories_slug_idx ON categories(slug);
+CREATE INDEX IF NOT EXISTS products_slug_idx ON products(slug);
+CREATE INDEX IF NOT EXISTS products_category_id_idx ON products(category_id);

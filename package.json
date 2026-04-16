@@ -1,15 +1,14 @@
 {
-  "name": "tienda-ropa-web-vue3",
-  "version": "2.0.0",
-  "description": "Tienda de ropa con frontend en Vue 3, panel admin y backend Node.js + PostgreSQL",
+  "name": "tienda-ropa-web-clean",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Boutique online reconstruida desde cero con Express + Vue 3 + PostgreSQL",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js",
-    "dev:client": "vite --config frontend/vite.config.js",
-    "build:client": "vite build --config frontend/vite.config.js",
-    "preview:client": "vite preview --config frontend/vite.config.js",
-    "build": "npm run build:client"
+    "dev": "node index.js",
+    "start": "node index.js",
+    "build": "vite build --config frontend/vite.config.mjs",
+    "dev:client": "vite --config frontend/vite.config.mjs"
   },
   "dependencies": {
     "express": "^4.21.2",

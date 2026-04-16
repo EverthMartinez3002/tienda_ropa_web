@@ -1,19 +1,17 @@
-FROM node:22-alpine AS build
+FROM node:20-alpine AS base
 WORKDIR /app
-COPY package.json ./
+COPY package.json package-lock.json* ./
 RUN npm install
+
+FROM base AS build
+WORKDIR /app
 COPY . .
 RUN npm run build
 
-FROM node:22-alpine
+FROM node:20-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json ./
-RUN npm install --omit=dev
-COPY --from=build /app/server.js ./server.js
-COPY --from=build /app/lib ./lib
-COPY --from=build /app/db ./db
-COPY --from=build /app/frontend/dist ./frontend/dist
-COPY --from=build /app/.env.example ./.env.example
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=build /app ./
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
